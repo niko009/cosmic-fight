@@ -12,25 +12,82 @@ Repository: `niko009/cosmic-fight`.
 
 **Decision:** 1v1 PvP spaceship battles are the product core.
 
-Players spawn opposing ships and take turns attacking/defending while upgrading their ship, weapon, armor, shield/reactor systems, and special modules over time.
+Players build and upgrade modular ships, enter short turn-based duels, and win by making better targeting, weapon and repair decisions than the opponent.
 
-## 2026-08-28 — Combat style
+## 2026-08-28 — Combat direction updated from supplied reference prototype
 
-**Decision:** tactical turn-based combat rather than pure automatic alternating fire.
+**Decision:** the central combat mechanic is now **targeted modular destruction**, inspired by the supplied Space Busters-style HTML prototype.
 
-Baseline actions:
+This replaces the earlier assumption that the game is primarily five abstract actions (`Attack / Defend / Charge / Repair / Special`).
 
-- Attack
-- Defend
-- Charge
-- Repair
-- Special
+The defining turn is now:
+
+1. choose a weapon;
+2. choose a specific enemy module;
+3. resolve damage/status/system consequences;
+4. opponent acts.
+
+Or:
+
+1. choose Repair;
+2. choose a damaged friendly module;
+3. consume repair resource and the turn.
+
+Core module families for the first prototype:
+
+- Core / Power;
+- Engines;
+- Weapons;
+- Armor;
+- Hull / Structure;
+- Sensors;
+- Wings/auxiliary structure where useful.
+
+Damage must be functional:
+
+- Engines affect accuracy/efficiency;
+- Weapons affect available offense;
+- Sensors affect targeting;
+- Armor physically protects linked modules and can be destroyed;
+- Core/Power can disable connected systems and cause cascade damage;
+- Hull/structure can create stress/cascade consequences.
+
+Initial weapons:
+
+- Laser;
+- Missile;
+- Scatter weapon;
+- Plasma.
+
+Initial secondary effects include Fire and Electrical Short. Structural Stress/cascade effects are also allowed where they remain readable.
+
+Repair is targeted and uses a limited resource/repair-kit concept.
+
+The first prototype should also include a small upgrade-point screen so players can improve Core, Engines, Weapons, Armor, Sensors, Hull, Fire Protection and Electrical Shielding between battles.
+
+`Defend`, `Charge`, active Shields, Energy and Special abilities are **not deleted from the design universe**. They are moved to later expansion candidates and should only be added after targeted module combat is proven fun.
+
+## 2026-08-28 — Victory-rule flexibility
+
+**Decision:** Core destruction is a major tactical event but is not yet locked as an automatic instant win.
+
+Phase 1 should test a more physical "cripple/destroy the ship" rule where Core destruction causes severe power/cascade consequences while a damaged ship can sometimes continue fighting.
+
+If playtests strongly favor a simpler "destroy the Core to win" objective, the rule can be promoted later.
+
+## 2026-08-28 — Orientation no longer hard-locked
+
+**Decision:** mobile-first remains important, but battle orientation is no longer fixed to portrait.
+
+The supplied reference works naturally as a wide left-vs-right modular battlefield, and precise module targeting may benefit from landscape on phones.
+
+Phase 1 Web should test responsive wide/narrow layouts. Android orientation will be chosen after usability testing.
 
 ## 2026-08-28 — Match duration
 
-**Decision:** target 2–4 minutes, roughly 6–12 turns.
+**Decision:** target 2–4 minutes.
 
-A sudden-death/Solar-Storm mechanic prevents endless defensive matches.
+A Solar Storm/sudden-death rule remains available only if repair/crippled-ship states make battles too long.
 
 ## 2026-08-28 — Multiplayer social layer
 
@@ -49,25 +106,38 @@ Also planned: Quick Battle and Ranked.
 
 ## 2026-08-28 — Server authority
 
-**Decision:** combat is server-authoritative. Client sends action intent; server calculates outcome.
+**Decision:** combat is server-authoritative. Client sends intent; server calculates outcome.
 
-Web and Android clients are presentations of the same authoritative game, not separate competitive implementations.
+For modular combat the server owns:
+
+- legal target;
+- weapon availability;
+- accuracy/RNG;
+- local armor absorption;
+- module damage;
+- Fire/Short/Stress;
+- cascade damage;
+- repair resource/use;
+- power graph/state;
+- turn and victory result.
+
+Web and Android clients are presentations of the same authoritative game.
 
 ## 2026-08-28 — Web-first validation strategy
 
-**Decision:** implementation order is now **Web first → shared authoritative server → Web PvP alpha → Android Godot client**.
+**Decision:** implementation order is **Web first → shared authoritative server → Web PvP alpha → Android Godot client**.
 
 Reasoning:
 
 - browser testing does not require a Google Play developer account;
 - testers can join immediately from a URL;
-- Web UI/combat iteration is faster to distribute;
-- real PvP can be validated before Android store/export work;
-- server, combat contracts, matchmaking and persistence are reused by Android.
+- Web iteration is faster to distribute;
+- real PvP can be validated before Android packaging/store work;
+- server and combat contracts are reused by Android.
 
-The already-created Godot project is retained as the Android-client foundation and is **not** discarded.
+The existing Godot project is retained as the Android-client foundation.
 
-Immediate next phase: `docs/DEVELOPMENT_STRATEGY.md` Phase 1 — Web combat prototype.
+Immediate next phase: `docs/DEVELOPMENT_STRATEGY.md` Phase 1 — Web modular combat prototype.
 
 ## 2026-08-28 — Shared backend/client architecture
 
@@ -75,12 +145,10 @@ Immediate next phase: `docs/DEVELOPMENT_STRATEGY.md` Phase 1 — Web combat prot
 
 Direction:
 
-- Web: TypeScript + Vite + Babylon.js, mobile-first;
+- Web: TypeScript + Vite + Babylon.js where useful, responsive/mobile-aware;
 - Server: ASP.NET Core + PostgreSQL + SignalR/WebSocket + Docker;
 - Android: Godot 4 .NET / C#;
 - Web deployment target when ready: `cosmic-fight.bacus.dev`.
-
-Competitive truth belongs to the server: action validation, battle resolution, turn state, results, rating and rewards.
 
 Do not create separate authoritative combat rules for Web and Android.
 
@@ -100,8 +168,6 @@ Do not create separate authoritative combat rules for Web and Android.
 └── docs/
 ```
 
-Do not reorganize/move the Godot root casually.
-
 ## 2026-08-28 — Progression fairness
 
 **Decision:** progression may improve/expand builds, but competitive design should avoid pure pay-to-win or massive stat gaps. Matchmaking/rating and power score will guard fairness.
@@ -116,50 +182,48 @@ Do not reorganize/move the Godot root casually.
 
 ## 2026-08-28 — Visual direction
 
-**Decision:** retain the generated premium sci-fi concepts as visual targets:
+**Decision:** keep the premium sci-fi visual target, but do not force the old portrait composition if targeted modular combat reads better in a wider layout.
 
-- large hero ships;
+Important visual goals remain:
+
+- large readable ships;
 - dark space battlefield;
-- blue local-player language;
-- red hostile/damage language;
-- strong shield/hull impact VFX;
-- premium metallic HUD;
-- vertically composed mobile battle screen.
+- clear friendly/hostile language;
+- visible module damage;
+- strong weapon/impact feedback;
+- readable repair/status feedback;
+- premium UI rather than debug-looking modules in final art.
 
 ## 2026-08-28 — Asset production workflow
 
 **Decision:** Cosmic Fight uses a manifest-driven, placeholder-first asset workflow.
 
-Godogen/Codex must not freely invent and mass-generate final assets during implementation.
-
 Required rules:
 
 - `docs/ART_BIBLE.md` defines the shared visual language;
-- `docs/ASSET_MANIFEST.md` defines canonical Asset IDs, paths, formats, technical requirements, and generation prompts;
-- new required assets should be registered in the manifest before production generation;
-- placeholders are allowed and preferred during early gameplay development;
-- gameplay code should use stable paths/resource contracts so approved assets can replace placeholders with minimal code changes;
-- one representative asset should be validated in the running game before mass-producing a category;
-- paid generation must not be triggered automatically simply because Godogen supports external generators;
-- accepted generated assets must record provider/source and prompt/version;
-- approved/final production assets are intended to be version-controlled unless a later explicit storage policy changes this.
+- `docs/ASSET_MANIFEST.md` defines Asset IDs, paths, formats, technical requirements and generation prompts;
+- register new required assets before production generation;
+- placeholders are preferred during mechanics development;
+- use stable paths/contracts so final assets can replace placeholders;
+- validate one representative asset in-game before mass-producing a category;
+- do not trigger paid generation automatically;
+- accepted generated assets record source/provider and prompt/version;
+- approved/final assets are intended to be version-controlled unless policy changes.
 
 Asset states:
 
 `MISSING` → `PLACEHOLDER` → `GENERATED` → `APPROVED` → `FINAL`.
 
-Where technically appropriate, assets should be reusable across Web and Android.
+Where practical, assets should be reusable across Web and Android.
 
 ## 2026-08-28 — Godogen role
 
 **Decision:** Godogen/Codex is primarily an implementation and iteration system for the Godot/Android track, not the owner of product direction.
 
-Godogen is useful for Godot-specific scene generation, build/run/visual-proof loops and asset workflow. Web and ASP.NET Core development do not depend on Godogen.
-
-Godogen must still read the existing GDD, decisions, visual references, Art Bible and Asset Manifest before Android implementation.
+Godogen is useful for Godot scene generation, build/run/visual-proof loops and asset workflow. Web and ASP.NET Core development do not depend on Godogen.
 
 ## 2026-08-28 — Scope control
 
-**Decision:** friends, spectators, private rooms, tournaments, clans, text chat, and deep live-service systems are post-MVP unless needed for a specific test.
+**Decision:** friends, spectators, private rooms, tournaments, clans, text chat and deep live-service systems are post-MVP unless required for a specific test.
 
-Progression/economy is also postponed until the basic Web PvP loop and server reliability are proven.
+Permanent progression/economy is also postponed until the basic Web combat and PvP loop is proven.
