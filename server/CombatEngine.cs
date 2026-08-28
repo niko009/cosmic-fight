@@ -112,7 +112,7 @@ public sealed class CombatEngine
         var targets = battle.PlayerShip.Modules.Where(m => !m.Destroyed).OrderByDescending(m => m.Type switch
         { ModuleType.Weapon => 12, ModuleType.Core => 11, ModuleType.Sensor => 8, ModuleType.Engine => 7, ModuleType.Armor => 5, _ => 4 }).Take(5).ToArray();
         var chosen = targets.Length == 0 ? battle.PlayerShip.Modules.First(m => !m.Destroyed) : targets[battle.Rng.Next(targets.Length)];
-        var weaponIds = ship.WeaponIds.Count > 0 ? ship.WeaponIds : ["laser"];
+        IReadOnlyList<string> weaponIds = ship.WeaponIds.Count > 0 ? ship.WeaponIds : new[] { "laser" };
         var weaponId = weaponIds[battle.Rng.Next(weaponIds.Count)];
         ResolveAction(battle, "enemy", new(battle.Turn, "fire", weaponId, chosen.Id, Guid.NewGuid().ToString("N")));
     }
