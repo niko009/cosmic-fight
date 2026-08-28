@@ -1,54 +1,51 @@
 # Cosmic Fight
 
-**Cosmic Fight** is a tactical 1v1 PvP game about building, upgrading, and commanding a custom starship in short turn-based online duels.
+**Cosmic Fight** is a tactical 1v1 PvP game about building, upgrading, and dismantling modular starships in short turn-based duels.
 
-> Build your ship. Challenge live players. Outplay your rival.
+> Choose a weapon. Target a system. Break the enemy ship apart.
 
 ## Core fantasy
 
-Players assemble a ship from hull, weapon, shield, armor, reactor, and special-module systems, then enter the online arena. They can see available pilots, challenge a specific player, accept or decline invitations, use quick matchmaking, and fight authoritative server-controlled battles.
+Each ship is made from visible, damageable systems such as Core/Power, Engines, Weapons, Armor, Hull and Sensors. On a turn, the player chooses a weapon and targets a specific enemy module, or spends the turn repairing one of their own damaged modules.
 
-Matches target **2–4 minutes** and focus on readable tactical decisions rather than twitch execution. Each turn a player chooses between **Attack, Defend, Charge, Repair, and Special** while managing energy, shields, cooldowns, critical hits, and system damage.
+Damage is functional, not cosmetic: broken engines hurt accuracy, destroyed weapons reduce firepower, damaged sensors hurt targeting, broken armor exposes protected systems, and power-network failures can disable modules that still have HP.
+
+The finished game remains a short online 1v1 PvP experience with direct challenges, matchmaking, upgrades and progression. Web is the first validation client; Android/Godot follows on the same authoritative backend.
 
 ## Project status
 
-**Stage:** pre-production complete / Godot bootstrap validated / Web-first implementation next.
+**Stage:** pre-production complete / Godot bootstrap validated / modular Web combat prototype next.
 
-The repository contains the authoritative design documentation plus a validated Godot 4.7.2 .NET/C# Android-client foundation. The Godot portrait scene boots with procedural player/enemy placeholders and passes build/import/headless/runtime validation.
-
-The current development strategy is now:
+Current strategy:
 
 ```text
-Web combat prototype
+Web modular combat prototype vs AI
         ↓
 ASP.NET Core authoritative server
         ↓
-Web PvP alpha on cosmic-fight.bacus.dev
+Web PvP alpha
         ↓
 Progression / competitive beta
         ↓
 Godot Android client using the same backend
 ```
 
-The existing Godot work is retained and becomes the Android client track. We are validating gameplay and real PvP in the browser first because it is faster to distribute and does not require an app-store developer account.
+The existing Godot 4.7.2 .NET/C# project is retained as the Android-client foundation.
 
 ## Documentation
 
 ### Start here
 
-- [Development Strategy — current implementation order](docs/DEVELOPMENT_STRATEGY.md)
+- [Development Strategy](docs/DEVELOPMENT_STRATEGY.md)
 - [Game Design Document](docs/GDD.md)
+- [Combat & Gameplay](docs/GAMEPLAY.md)
 - [Product Decisions](docs/DECISIONS.md)
 
-### Product and gameplay
+### Supporting docs
 
-- [Combat & Gameplay](docs/GAMEPLAY.md)
 - [Multiplayer & Social PvP](docs/MULTIPLAYER.md)
 - [Progression & Economy](docs/PROGRESSION.md)
 - [MVP & Roadmap](docs/MVP_ROADMAP.md)
-
-### Production and implementation
-
 - [Technical Architecture](docs/TECHNICAL_ARCHITECTURE.md)
 - [Godogen / Codex Workflow](docs/GODOGEN_WORKFLOW.md)
 - [Asset Manifest + Generation Prompts](docs/ASSET_MANIFEST.md)
@@ -68,16 +65,13 @@ The existing Godot work is retained and becomes the Android client track. We are
               |                       |
          Web Client              Android Client
    Babylon.js / TypeScript       Godot 4 .NET / C#
-   browser / mobile-first        Google Play later
               |                       |
  cosmic-fight.bacus.dev          same backend/API
 ```
 
-Web and Android are two clients of the same game. Competitive outcomes, matchmaking, battle state, rating and rewards must remain server-authoritative.
+Web and Android are two clients of the same authoritative game. The server owns target validation, RNG, armor absorption, module damage, statuses, repair, battle state, rating and rewards.
 
 ## Repository layout direction
-
-The Godot project remains at repository root for Godogen compatibility. New tracks are added alongside it:
 
 ```text
 /
@@ -91,56 +85,36 @@ The Godot project remains at repository root for Godogen compatibility. New trac
 └── docs/
 ```
 
-## Current implementation status
-
-Completed:
-
-- full GDD and supporting design docs;
-- visual direction / Art Bible / Asset Manifest;
-- Godogen/Codex integration;
-- Godot 4.7.2 .NET bootstrap;
-- portrait Godot scene and procedural placeholders;
-- portable NuGet restore;
-- build/import/headless/runtime validation.
-
-Not implemented yet:
-
-- real combat loop;
-- Web client;
-- authoritative server;
-- accounts/persistence;
-- online presence/matchmaking;
-- real PvP;
-- production assets;
-- Android export/AAB pipeline.
-
 ## Immediate next phase
 
-**Phase 1 — Web combat prototype.**
+**Phase 1 — Web modular combat prototype.**
 
-Build a mobile-first browser battle in `web/` with placeholders and the documented five actions. Use a deterministic local model and AI only long enough to validate readability and the turn loop. Do not build full progression or networking before the basic fight feels worthwhile.
+Build in `web/`:
 
-After the Web combat loop is validated, build the shared authoritative ASP.NET Core server and connect real Web PvP. Android then connects to that same backend rather than inventing a second game implementation.
+- two modular placeholder ships;
+- selectable ship systems;
+- Laser / Missile / Scatter / Plasma;
+- module HP and destruction;
+- local armor protection;
+- basic power/system consequences;
+- Fire and/or Electrical Short;
+- targeted Repair with limited kits;
+- simple AI;
+- small pre-battle upgrade screen;
+- battle log;
+- Victory / Defeat / Rematch;
+- responsive browser usability.
+
+Do not build accounts or real networking until this combat loop is enjoyable enough to justify the server phase.
 
 ## Asset production policy
 
-The project uses these states:
+Asset states:
 
 `MISSING` → `PLACEHOLDER` → `GENERATED` → `APPROVED` → `FINAL`
 
-The visual source of truth is:
-
-1. `docs/ART_BIBLE.md`
-2. `docs/VISUAL_DIRECTION.md`
-3. approved references under `docs/images/`
-4. per-asset specification/prompt in `docs/ASSET_MANIFEST.md`
-
-Placeholders are preferred during mechanics development. Godogen/Codex should validate one representative asset in the running game before mass-producing the rest of a category. Paid generation must not be triggered automatically.
+Placeholders are preferred during mechanics development. Final art follows `ART_BIBLE.md`, `VISUAL_DIRECTION.md` and `ASSET_MANIFEST.md`.
 
 ## Godogen role
 
-Godogen remains useful primarily for the **Godot/Android track**: Godot-specific agent instructions, build/run/visual-proof workflow, scene generation and asset iteration. Ordinary Web and ASP.NET Core development does not depend on Godogen.
-
-## Working tagline
-
-**Fight smart. Upgrade. Conquer.**
+Godogen remains useful primarily for the **Godot/Android track**: scene generation, build/run/visual-proof loops and asset iteration. Web and ASP.NET Core development do not depend on Godogen.
