@@ -126,13 +126,17 @@ async function missile(event: CombatVisualEvent, start: Point, end: Point, host:
   const bend = (18 + event.aimSpread * 65) * (rand() > .5 ? 1 : -1);
   const mx = (start.x + end.x) / 2 - dy / length * bend;
   const my = (start.y + end.y) / 2 + dx / length * bend;
+  const startAngle = Math.atan2(my - start.y, mx - start.x) * 180 / Math.PI;
+  const endAngle = Math.atan2(end.y - my, end.x - mx) * 180 / Math.PI;
+  const midAngle = (startAngle + endAngle) / 2;
   rocket.style.left = `${start.x}px`;
   rocket.style.top = `${start.y}px`;
+  rocket.style.transform = `translate(-50%,-50%) rotate(${startAngle}deg) scale(.75)`;
   host.append(rocket);
   const animation = rocket.animate([
-    { left: `${start.x}px`, top: `${start.y}px`, transform: 'translate(-50%,-50%) scale(.75)' },
-    { left: `${mx}px`, top: `${my}px`, transform: 'translate(-50%,-50%) scale(1.05)', offset: .55 },
-    { left: `${end.x}px`, top: `${end.y}px`, transform: 'translate(-50%,-50%) scale(.9)' }
+    { left: `${start.x}px`, top: `${start.y}px`, transform: `translate(-50%,-50%) rotate(${startAngle}deg) scale(.75)` },
+    { left: `${mx}px`, top: `${my}px`, transform: `translate(-50%,-50%) rotate(${midAngle}deg) scale(1.05)`, offset: .55 },
+    { left: `${end.x}px`, top: `${end.y}px`, transform: `translate(-50%,-50%) rotate(${endAngle}deg) scale(.9)` }
   ], { duration: 760, easing: 'cubic-bezier(.25,.4,.18,1)' });
   await animation.finished.catch(() => undefined);
   rocket.remove();
