@@ -14,9 +14,11 @@ The UI and battlefield share one visual language:
 - purple for special/rare abilities;
 - green for healing/positive state.
 
+The repository keeps lightweight vector layout references derived from the approved visual concepts. They define hierarchy, composition, color semantics, and information density; final art should preserve these principles without treating every placeholder as literal production UI.
+
 ## Battle screen
 
-![Battle concept](images/battle-screen.jpg)
+![Battle concept](images/battle-screen.svg)
 
 Key composition:
 
@@ -40,7 +42,7 @@ Desired feedback:
 
 ## Online Arena
 
-![Online Arena concept](images/online-arena.jpg)
+![Online Arena concept](images/online-arena.svg)
 
 Key UX:
 
@@ -58,7 +60,7 @@ MVP simplification:
 
 ## Hangar / ship loadout
 
-![Hangar concept](images/hangar.jpg)
+![Hangar concept](images/hangar.svg)
 
 Key composition:
 
@@ -68,16 +70,6 @@ Key composition:
 - Upgrade / Equip / Battle are high-priority actions;
 - inventory cards use consistent rarity/type language;
 - hangar lighting should make upgrades feel tangible.
-
-## GDD concept boards
-
-These generated boards are retained as visual references for product intent, not as literal final UI specifications.
-
-![GDD overview](images/gdd-overview.jpg)
-
-![Gameplay and progression board](images/gdd-gameplay-progression.jpg)
-
-![Multiplayer roadmap board](images/gdd-multiplayer-roadmap.jpg)
 
 ## Typography
 
