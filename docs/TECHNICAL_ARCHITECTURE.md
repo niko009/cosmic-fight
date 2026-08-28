@@ -2,11 +2,9 @@
 
 ## Status
 
-Current implementation architecture for the Web-first validation strategy. Product rules remain defined by the GDD/Decisions; this document defines the shared technical shape.
+Current architecture for the Web-first validation strategy and updated modular-combat model.
 
 ## System overview
-
-Cosmic Fight will have one authoritative backend and two clients:
 
 ```text
                      Cosmic Fight
@@ -21,7 +19,7 @@ Cosmic Fight will have one authoritative backend and two clients:
    Babylon.js / TypeScript       Godot 4 .NET / C#
 ```
 
-The Web client is built/tested first. The Android/Godot client follows after Web PvP and combat rules are validated.
+Web is built/tested first. Android follows after Web PvP and combat rules are validated.
 
 ## Web client
 
@@ -29,21 +27,13 @@ Preferred direction:
 
 - TypeScript;
 - Vite;
-- Babylon.js for battle rendering/animation;
-- mobile-first responsive browser UI;
+- Babylon.js where battle rendering benefits from it;
+- responsive browser UI;
 - target deployment at `cosmic-fight.bacus.dev`.
 
-Responsibilities:
+Before networking, the Web prototype may contain local deterministic combat logic solely to validate gameplay.
 
-- rendering;
-- input;
-- UI;
-- animation/VFX/audio;
-- local prototype logic before networking is introduced;
-- realtime transport once connected to the server;
-- presentation of authoritative state.
-
-Once multiplayer is introduced, the Web client must **not** own competitive outcomes.
+Once multiplayer is introduced, the Web client must not own competitive outcomes.
 
 ## Android client
 
@@ -51,14 +41,11 @@ Existing foundation:
 
 - Godot 4.7.2 .NET;
 - C# / .NET 9;
-- portrait/mobile-first;
 - Godogen-compatible project at repository root.
 
-Responsibilities match the Web client: rendering, input, UX, audio/VFX and authoritative-state presentation.
+Android consumes the same backend and battle contracts as Web.
 
-Android must consume the same backend and battle contracts as Web. Do not create a second authoritative combat implementation in the mobile client.
-
-Godogen is primarily an Android/Godot implementation aid, not a requirement for Web/server development.
+Orientation is no longer technically fixed to portrait; final Android orientation should follow Phase 1 usability findings.
 
 ## Server
 
@@ -68,10 +55,11 @@ Preferred stack:
 - PostgreSQL;
 - SignalR/WebSocket for realtime communication;
 - REST/HTTP for non-realtime operations;
-- Docker for deployment;
-- structured logging and health/version endpoints.
+- Docker;
+- structured logs;
+- health/version endpoints.
 
-The dedicated authoritative backend handles:
+The authoritative backend handles:
 
 - authentication/session identity;
 - presence;
@@ -79,205 +67,252 @@ The dedicated authoritative backend handles:
 - duel invitations;
 - battle rooms;
 - turn validation;
-- combat resolution;
-- RNG/deterministic resolution;
+- target validation;
+- weapon resolution;
+- RNG;
+- armor absorption;
+- module damage;
+- Fire/Short/Stress effects;
+- power-network recalculation;
+- repair resource/use;
 - reconnect state;
-- inventory/loadout validation;
-- progression rewards;
-- rating;
+- loadout validation;
+- progression/rating/rewards;
 - persistence.
 
-## Realtime communication
-
-Suggested split:
-
-- HTTP/REST for account/profile/inventory/static operations;
-- SignalR/WebSocket for presence, invitations, matchmaking status and battle events.
-
-Both Web and Android clients use the same semantic event/contracts even if transport-client libraries differ.
-
-## Authoritative battle state
+## Authoritative modular battle state
 
 Server-side battle aggregate should contain at minimum:
 
 - battle ID;
 - player IDs;
-- immutable loadout snapshots;
+- immutable ship/loadout snapshots;
 - turn index;
 - active player;
 - timer/deadline;
-- hull HP;
-- shield;
-- energy;
-- cooldowns;
-- status/system effects;
+- result state;
 - deterministic RNG seed/state or event log;
-- result state.
+- each player's remaining repair resources;
+- each player's ship module graph.
 
-## Suggested command model
+Each module snapshot should contain at minimum:
 
-Client sends intent only:
+- module ID;
+- module type;
+- current HP;
+- maximum HP;
+- connection IDs;
+- powered/functional state;
+- temporary status effects;
+- any module-specific modifiers required by the validated rules.
+
+Do not reduce the authoritative model back to one global HP bar if the validated gameplay depends on module topology.
+
+## Command model
+
+Attack intent example:
 
 ```json
 {
   "battleId": "...",
   "turn": 4,
-  "action": "attack",
-  "weaponSlot": "primary"
+  "action": "fire",
+  "weaponId": "plasma",
+  "targetModuleId": "enemy-core"
 }
 ```
 
-Server responds with authoritative outcome events, not a client-supplied damage value.
+Repair intent example:
+
+```json
+{
+  "battleId": "...",
+  "turn": 5,
+  "action": "repair",
+  "targetModuleId": "player-engine-left"
+}
+```
+
+The client never submits damage, hit results, status results or victory state.
+
+## Server resolution pipeline
+
+Suggested order:
+
+```text
+validate player / battle / turn
+→ validate weapon/action
+→ validate target module
+→ resolve accuracy/RNG
+→ resolve local armor coverage
+→ apply target damage
+→ resolve splash
+→ resolve Fire/Short/Stress
+→ resolve destruction/cascade
+→ recalculate power graph/system effectiveness
+→ check victory
+→ emit authoritative events/snapshot
+```
 
 ## Shared contracts
 
-Web and Android are two clients of the same game. Shared/versioned contracts should cover:
+Web and Android share/version contracts for:
 
-- player/profile DTOs;
-- loadout snapshot;
-- battle snapshot;
-- action commands;
-- battle events/results;
-- presence/challenge events;
-- matchmaking state;
+- player/profile;
+- ship/loadout/module definitions;
+- battle snapshots;
+- fire/repair commands;
+- module-damage/status events;
+- battle result;
+- presence/challenge/matchmaking events;
 - error/version semantics.
 
-Avoid client-specific combat rules. Client code may predict/animate harmless presentation, but server results always win.
+Client code owns presentation, not competitive truth.
+
+## Realtime communication
+
+Suggested split:
+
+- HTTP/REST for profile, inventory, loadout and static operations;
+- SignalR/WebSocket for presence, challenge/matchmaking and battle events.
 
 ## Persistence
 
-Persistent entities:
+Persistent entities can include:
 
-- User
-- PlayerProfile
-- InventoryItem
-- ShipLoadout
-- Progression
-- Rating
-- MatchSummary
-- EconomyTransaction
+- User;
+- PlayerProfile;
+- InventoryItem;
+- ShipLayout / ShipLoadout;
+- Module/Equipment ownership;
+- Progression;
+- Rating;
+- MatchSummary;
+- EconomyTransaction.
 
-Battle working state can begin in-process with persisted snapshots, then move to Redis/distributed storage if horizontal scale requires it.
+Battle working state can begin in process with snapshots/events, then move to Redis/distributed storage only if scale requires it.
 
 ## Database
 
 PostgreSQL is the default durable store.
 
-Use appendable transaction/history records for economy-sensitive changes where practical.
-
 ## Reconnect model
 
-Socket identity and battle identity must be separate.
+Socket identity and battle identity are separate.
 
-A player can lose a network connection without losing the server-side battle. On reconnect:
+On reconnect:
 
 1. authenticate;
 2. resolve active battle;
 3. attach new socket/session;
-4. send full battle snapshot;
-5. continue if grace period not expired.
+4. send full authoritative modular battle snapshot;
+5. continue if grace period has not expired.
 
-This must work for both browser refresh/reconnect and Android background/resume cases.
+Must work for browser refresh and Android background/resume.
 
 ## Anti-cheat
 
 Server validates:
 
-- player owns selected item;
-- item version/level is legal;
-- loadout was locked before battle;
-- action belongs to current player/turn;
-- enough energy;
-- cooldown available;
-- effect allowed;
-- damage/result generated server-side;
-- reward only granted once.
+- legal loadout;
+- legal module topology/data version;
+- current player/turn;
+- selected weapon availability;
+- selected target exists and is targetable;
+- repair resource availability;
+- damage/status/cascade generated server-side;
+- result/reward settled once.
 
 Use idempotency for action submission and reward settlement.
 
 ## Hosting direction
 
-Initial production-like hosting should support:
+Initial production-like hosting supports:
 
-- Web static/client deployment;
+- Web client;
 - ASP.NET Core server container;
 - PostgreSQL;
 - HTTPS/WSS;
 - health/version endpoints;
-- logs and restart policy.
-
-The Web client should be deployable at `cosmic-fight.bacus.dev` once the PvP alpha is ready.
+- logs/restart policy.
 
 ## Observability
 
-MVP needs structured logs and metrics for:
+Track at minimum:
 
-- connection count;
-- online players;
+- online connections;
 - matchmaking wait;
-- battle create/start/end;
-- battle duration;
+- battle start/end/duration;
 - disconnect/reconnect;
-- invalid command attempts;
-- server exceptions;
-- reward settlement failures.
+- action/target selection;
+- weapon usage;
+- module destruction frequency;
+- armor absorption;
+- repair usage;
+- invalid commands;
+- server exceptions.
+
+These metrics are also valuable for balance decisions.
 
 ## Testing layers
 
 ### Combat unit tests
 
-- damage calculations;
-- energy/cooldown validation;
-- shield/armor interaction;
-- critical/system effects;
-- sudden death;
-- victory conditions.
+- target validation;
+- weapon damage;
+- armor absorption;
+- module state transitions;
+- Fire/Short/Stress;
+- cascade bounds;
+- power graph recalculation;
+- repair rules;
+- victory conditions;
+- deterministic RNG/event replay where implemented.
 
 ### Server integration tests
 
 - challenge flow;
 - match creation;
-- reconnect;
+- valid/invalid fire command;
+- valid/invalid repair command;
 - duplicate commands;
-- simultaneous messages;
-- reward idempotency.
+- reconnect;
+- simultaneous/late messages;
+- result/reward idempotency.
 
 ### Web QA
 
-- portrait/mobile browser layout;
-- desktop responsive layout;
-- readable combat state;
-- reconnect/browser refresh;
-- touch input;
-- performance on representative mobile browsers.
+- wide desktop battle layout;
+- narrow/mobile responsive layout;
+- precise tap targeting;
+- readable module states;
+- browser refresh/reconnect once online;
+- representative mobile-browser performance.
 
 ### Android QA
 
-- portrait mobile layout;
-- multiple aspect ratios;
+- chosen orientation/aspect ratios;
+- touch target precision;
 - interrupted network;
 - background/resume;
-- reconnect after app focus changes;
 - device/export validation.
 
 ### E2E
 
 Two automated clients should be able to:
 
-1. login or obtain test identity;
+1. obtain identities;
 2. appear online;
-3. challenge;
-4. accept;
-5. complete a deterministic authoritative battle;
-6. receive correct results/rewards.
-
-Run E2E against Web first, then repeat contract/parity checks for Android.
+3. challenge/accept;
+4. submit targeted actions;
+5. complete an authoritative modular battle;
+6. receive identical final results.
 
 ## Security basics
 
 - TLS only in production;
 - secure auth token storage;
-- rate-limit challenge spam and action endpoints;
-- validate all client payloads;
+- rate-limit challenge/action spam;
+- validate all payloads;
 - no secrets in clients;
-- abuse/reporting hooks planned before public scale.
+- moderation/reporting hooks before public scale.
