@@ -1,0 +1,60 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Main.cs" id="1_elqb8"]
+
+[node name="Main" type="Control" unique_id=111129211]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_elqb8")
+
+[node name="Title" type="Label" parent="." unique_id=450048545]
+layout_mode = 0
+offset_top = 92.0
+offset_right = 720.0
+offset_bottom = 164.0
+theme_override_font_sizes/font_size = 52
+theme_override_colors/font_color = Color(0.91764706, 0.96862745, 1, 1)
+text = "COSMIC FIGHT"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="." unique_id=1064481792]
+layout_mode = 0
+offset_top = 162.0
+offset_right = 720.0
+offset_bottom = 206.0
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.4745098, 0.8117647, 1, 1)
+text = "Prototype environment ready"
+horizontal_alignment = 1
+
+[node name="EnemyLabel" type="Label" parent="." unique_id=1525308131]
+layout_mode = 0
+offset_top = 548.0
+offset_right = 720.0
+offset_bottom = 582.0
+theme_override_font_sizes/font_size = 17
+theme_override_colors/font_color = Color(1, 0.48235294, 0.5254902, 1)
+text = "ENEMY  •  PLACEHOLDER"
+horizontal_alignment = 1
+
+[node name="PlayerLabel" type="Label" parent="." unique_id=1327759694]
+layout_mode = 0
+offset_top = 1052.0
+offset_right = 720.0
+offset_bottom = 1086.0
+theme_override_font_sizes/font_size = 17
+theme_override_colors/font_color = Color(0.38431373, 0.81960785, 1, 1)
+text = "PLAYER  •  PLACEHOLDER"
+horizontal_alignment = 1
+
+[node name="Footer" type="Label" parent="." unique_id=774500585]
+layout_mode = 0
+offset_top = 1205.0
+offset_right = 720.0
+offset_bottom = 1241.0
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.56, 0.64, 0.76, 1)
+text = "MOBILE PORTRAIT  /  GODOT 4.7.2 .NET"
+horizontal_alignment = 1

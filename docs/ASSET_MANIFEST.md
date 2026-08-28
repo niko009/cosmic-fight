@@ -66,7 +66,9 @@ assets/
 **Path:** `assets/ships/scout/ship.glb`  
 **Type:** GLB / glTF 2.0  
 **Purpose:** lightweight agile hull; first playable hero ship  
-**Status:** `MISSING`
+**Status:** `PLACEHOLDER`
+
+Placeholder source: procedural polygon in `scripts/Main.cs`; no external asset generated. The canonical GLB remains missing and will replace this presentation later.
 
 Technical:
 
@@ -87,7 +89,9 @@ Generation prompt:
 **Path:** `assets/ships/fighter/ship.glb`  
 **Type:** GLB  
 **Purpose:** balanced baseline hull  
-**Status:** `MISSING`
+**Status:** `PLACEHOLDER`
+
+Placeholder source: enemy-colored procedural polygon in `scripts/Main.cs`; no external asset generated. The canonical GLB remains missing and will replace this presentation later.
 
 Generation prompt:
 
@@ -349,7 +353,9 @@ Prompt pattern:
 ## CF-BG-001 — Battle Space Arena
 
 **Path:** `assets/backgrounds/battle_space_01.png` or implementation-specific cubemap/panorama  
-**Status:** `MISSING`
+**Status:** `PLACEHOLDER`
+
+Placeholder source: procedural dark gradient-like circles and deterministic star points in `scripts/Main.cs`; no external asset generated. The canonical production background remains missing.
 
 Prompt:
 

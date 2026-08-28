@@ -12,9 +12,21 @@ Matches target **2–4 minutes** and focus on readable tactical decisions rather
 
 ## Project status
 
-**Stage:** pre-production / game-design lock / Godogen preparation.
+**Stage:** pre-production / validated Godot project bootstrap.
 
-The repository contains the initial Game Design Document, gameplay rules, multiplayer design, progression/economy, technical architecture, MVP roadmap, visual direction, Art Bible, canonical MVP Asset Manifest, and the required Godogen/Codex implementation workflow.
+The repository contains the authoritative design documentation plus a minimal Godot 4.7.2 .NET/C# project shell. The portrait-oriented Main scene boots with a procedural space backdrop and placeholder player/enemy ship silhouettes. No combat gameplay, networking, production art, or external assets have been implemented yet.
+
+### Bootstrap status
+
+- Built: Godot/.NET project configuration, generated Main scene, mobile portrait layout, procedural proof visuals.
+- Validated: C# build, Godot import/editor startup, and runtime capture.
+- Next: Phase 1 deterministic offline combat prototype, following the documented five-action scope.
+
+| Asset / presentation | Current source | Status |
+|---|---|---|
+| Battle space background | Procedural `CanvasItem` drawing | `PLACEHOLDER` |
+| Player scout silhouette | Procedural polygon drawing | `PLACEHOLDER` |
+| Enemy fighter silhouette | Procedural polygon drawing | `PLACEHOLDER` |
 
 ## Documentation
 
