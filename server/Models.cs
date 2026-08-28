@@ -78,6 +78,20 @@ public sealed class ShipState
 public sealed record WeaponDefinition(string Id, string Name, int Damage, double Accuracy, int Splash, double FireChance, double ShortChance, string Description);
 public sealed record BattleLogEntry(int Turn, string Kind, string Text, DateTimeOffset At);
 
+public sealed record CombatVisualEvent(
+    Guid Id,
+    int Turn,
+    string Kind,
+    string Side,
+    string? WeaponId,
+    string? SourceModuleId,
+    string? TargetModuleId,
+    bool Hit,
+    double AimSpread,
+    double EndX,
+    double EndY,
+    DateTimeOffset At);
+
 public sealed class BattleState
 {
     public required Guid Id { get; init; }
@@ -91,6 +105,7 @@ public sealed class BattleState
     public string? Winner { get; set; }
     public DateTimeOffset StartedAt { get; init; } = DateTimeOffset.UtcNow;
     public List<BattleLogEntry> Log { get; init; } = [];
+    public List<CombatVisualEvent> Effects { get; init; } = [];
     [JsonIgnore] public Random Rng { get; init; } = new();
     [JsonIgnore] public HashSet<string> ProcessedActions { get; init; } = [];
     [JsonIgnore] public bool Settled { get; set; }
@@ -101,6 +116,9 @@ public sealed record BattleSnapshot(
     Guid Id, int Turn, string ActiveSide, string Status, string? Winner,
     Guid PlayerOneId, Guid? PlayerTwoId,
     ShipState PlayerShip, ShipState EnemyShip,
-    IReadOnlyList<WeaponDefinition> Weapons, IReadOnlyList<BattleLogEntry> Log, DateTimeOffset StartedAt);
+    IReadOnlyList<WeaponDefinition> Weapons,
+    IReadOnlyList<BattleLogEntry> Log,
+    IReadOnlyList<CombatVisualEvent> Effects,
+    DateTimeOffset StartedAt);
 public sealed record ViewerBattleSnapshot(string OwnSide, BattleSnapshot Battle);
 public sealed record VersionResponse(string Version, string Commit, DateTimeOffset BuiltAt);
