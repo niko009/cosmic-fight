@@ -1,53 +1,108 @@
 # Cosmic Fight — Game Design Document
 
-**Version:** 0.1 — Pre-production baseline  
+**Version:** 0.2 — Modular Combat Direction  
 **Status:** Working product specification  
-**Primary platform:** Android / mobile-first  
-**Engine direction:** Godot 4 .NET / C#  
-**Genre:** Turn-based tactical PvP / ship-builder battler  
+**Primary platforms:** Web first for validation, Android production client later  
+**Client direction:** Web = TypeScript/Babylon.js; Android = Godot 4 .NET/C#  
+**Genre:** Turn-based tactical PvP / modular starship battler  
 **Core mode:** Online 1v1 starship duels
 
 ---
 
 ## 1. High concept
 
-**Cosmic Fight** is a fast, readable, competitive 1v1 PvP game where players build and upgrade custom starships, see other pilots online, challenge them directly or enter matchmaking, and fight short tactical turn-based duels.
+**Cosmic Fight** is a tactical 1v1 spaceship game where each ship is built from visible, damageable systems. On a turn, the player chooses a weapon or repair action and targets a specific enemy or friendly module. Destroying or damaging systems changes how the ship performs during the battle.
 
-The game is built around three fantasies:
+The core fantasy is not simply "reduce one HP bar to zero." It is:
 
-1. **I built this ship.** The loadout, visual identity, and upgrade path should feel personal.
-2. **I outplayed that pilot.** Victory should come from prediction, timing, energy management, and build decisions—not only raw stats.
-3. **My ship keeps evolving.** Every few battles should create a meaningful reason to return to the hangar and adjust the build.
+> **Take the enemy ship apart system by system while keeping your own ship alive.**
+
+Players upgrade their ship between battles, experiment with weapon/module combinations, enter the online arena, challenge other pilots, and fight short server-authoritative duels.
 
 ### One-line pitch
 
-> Build your ship, challenge live pilots, and outplay them in short tactical space duels.
+> Build your ship, target enemy systems, cripple their combat capability, and win short tactical PvP duels.
 
 ### Working tagline
 
-> **Fight smart. Upgrade. Conquer.**
+> **Target. Break. Adapt. Win.**
 
 ---
 
 ## 2. Design pillars
 
-### 2.1 Fast tactical combat
+### 2.1 Targeted modular combat
 
-- Target battle duration: **2–4 minutes**.
-- Typical battle: **6–12 turns**.
-- Each turn must create a meaningful choice.
-- No long animation locks or waiting without information.
-- A late-match anti-stall rule forces resolution.
+The defining mechanic of Cosmic Fight is **aiming at individual ship systems**.
 
-### 2.2 Build crafting
+A player should regularly ask:
 
-A ship is a loadout, not a single linear upgrade bar. Players combine systems with strengths, counters, energy costs, cooldowns, and synergies.
+- Do I destroy the weapons first?
+- Do I cripple the engines to reduce accuracy?
+- Do I break armor before attacking the protected core?
+- Do I attack the power network?
+- Do I spend my turn repairing instead of shooting?
 
-### 2.3 Live social PvP
+Target selection must matter as much as weapon selection.
 
-Players should feel that the arena is populated by real people:
+### 2.2 Systems affect gameplay
 
-- online status;
+Modules are not decorative hit zones. Damage changes battle performance.
+
+Examples:
+
+- damaged/destroyed engines reduce accuracy or firing efficiency;
+- destroyed weapons reduce available firepower;
+- damaged sensors reduce targeting accuracy;
+- destroyed armor exposes connected modules;
+- damaged power/core systems can disable connected nodes;
+- destroyed structural modules can create cascade/stress damage.
+
+### 2.3 Build crafting and upgrades
+
+The ship is a configurable machine rather than one global stat block.
+
+Players improve systems between battles and later choose different hulls, weapons, armor layouts and support modules.
+
+The desired feeling is:
+
+> "This is my ship, and I understand why it behaves differently from yours."
+
+### 2.4 Short tactical battles
+
+Target battle duration: **2–4 minutes**.
+
+A normal turn should be understandable in seconds:
+
+1. choose weapon/action;
+2. choose target module;
+3. resolve shot/repair;
+4. see immediate system consequences;
+5. opponent acts.
+
+No long animation locks or unnecessary waiting.
+
+### 2.5 Readable destruction
+
+Players must visually understand the state of both ships.
+
+Important feedback:
+
+- module HP/state;
+- broken module;
+- power offline;
+- burning;
+- electrical short;
+- armor coverage;
+- weapon impact;
+- repair result;
+- concise battle log.
+
+### 2.6 Live social PvP
+
+The finished game should feel populated by real pilots:
+
+- online presence;
 - direct challenge;
 - accept/decline;
 - quick match;
@@ -55,24 +110,12 @@ Players should feel that the arena is populated by real people:
 - rematch;
 - later: friends, private rooms, spectators, tournaments.
 
-### 2.4 Readable spectacle
-
-The battle must look dramatic while remaining mechanically clear:
-
-- large ships;
-- shield flashes;
-- visible hull damage;
-- readable projectile/beam origin and target;
-- strong color hierarchy;
-- concise combat log;
-- camera shake used selectively.
-
-### 2.5 Fair competition
+### 2.7 Fair competition
 
 - Server-authoritative combat.
-- No client-calculated damage.
-- No direct pay-to-win competitive advantage.
-- Matchmaking considers both rating and ship power where appropriate.
+- Client sends intent, not damage results.
+- No direct pay-to-win ranked advantage.
+- Matchmaking may consider both rating and ship power where appropriate.
 
 ---
 
@@ -80,318 +123,469 @@ The battle must look dramatic while remaining mechanically clear:
 
 Primary:
 
-- mobile players who enjoy short competitive sessions;
-- sci-fi / spaceship fans;
-- players who like upgrades, builds, and counters;
-- players who want PvP depth without real-time twitch controls.
+- players who enjoy short tactical battles;
+- sci-fi/spaceship fans;
+- players who like upgrades and ship builds;
+- players who enjoy disabling enemy systems and adapting mid-battle;
+- mobile/web players who want strategy without real-time twitch controls.
 
-Secondary:
+Desired session:
 
-- mid-core strategy players;
-- collection/progression players;
-- social PvP players who enjoy challenging known opponents.
-
-Desired session behavior:
-
-- open game;
-- check hangar / claim small rewards;
-- play 2–3 battles;
-- upgrade or swap one component;
-- challenge/rematch a player;
-- leave within 5–10 minutes feeling progress.
+```text
+Open game
+→ inspect/upgrade ship
+→ play 2–3 short battles
+→ improve or reconfigure systems
+→ challenge/rematch another pilot
+→ leave with visible progress
+```
 
 ---
 
 ## 4. Core loop
 
 ```text
-Build / tune ship
-      ↓
-Go online
-      ↓
-Challenge player or matchmaking
-      ↓
-1v1 battle
-      ↓
-Rewards + rating result
-      ↓
-Upgrade / equip / adjust build
-      ↓
+Upgrade / configure ship
+        ↓
+Enter arena
+        ↓
+Challenge player or matchmake
+        ↓
+Choose weapon/action
+        ↓
+Target a specific ship module
+        ↓
+Resolve damage / statuses / system failure
+        ↓
+Opponent turn
+        ↓
+Battle result
+        ↓
+Rewards / upgrade points / progression
+        ↓
+Improve ship
+        ↓
 Repeat
 ```
 
-Long-term loop:
-
-```text
-Battles → resources → upgrades → stronger/more specialized builds
-        → higher leagues → seasonal rewards → cosmetics / prestige
-```
+The first Web prototype uses a bot instead of real PvP so the combat loop can be validated cheaply.
 
 ---
 
-## 5. Player ship
+## 5. Ship architecture
 
-Each active ship has six core loadout slots.
+A ship is composed of visible combat modules connected into a functional machine.
 
-### 5.1 Hull
+### 5.1 Core / Power
 
-Determines the base identity of the ship.
+The central power system.
 
-Primary stats:
+Responsibilities:
 
-- hull HP;
-- base energy;
-- base mass/class;
-- passive modifiers;
-- possible module limits.
+- feeds connected systems;
+- high-value tactical target;
+- damage can reduce ship effectiveness;
+- destruction can trigger severe cascade damage and/or power loss.
 
-Initial hull archetypes:
+The exact victory rule for core destruction is a balance decision. The first prototype should test **severe cascade rather than guaranteed instant victory**, because this produces more interesting crippled-ship states.
 
-| Hull | Fantasy | Strength | Weakness |
-|---|---|---|---|
-| Scout | fast, efficient, tactical | energy / utility | low HP |
-| Fighter | balanced | flexible build | no extreme strength |
-| Destroyer | heavy brawler | HP / armor / burst | slower energy economy |
+### 5.2 Engines
 
-### 5.2 Weapon
+Effects may include:
 
-Primary offensive system.
+- weapon accuracy;
+- projectile/attack efficiency;
+- evasion or future initiative mechanics.
 
-Initial MVP weapons:
+Losing one engine should hurt. Losing all engines should be a major tactical disadvantage without necessarily ending the battle immediately.
 
-| Weapon | Identity | Example behavior |
-|---|---|---|
-| Laser | reliable | stable damage, high accuracy |
-| Plasma Cannon | burst | high damage, high energy cost |
-| Missile Rack | cooldown burst | high impact, longer cooldown / counterplay |
-| Railgun | armor penetration | bypasses part of armor |
+### 5.3 Weapons
 
-Post-MVP candidate: Ion Cannon focused on system disruption.
+Weapon modules are firing points.
 
-### 5.3 Shield
-
-- absorbs damage before hull;
-- can have regeneration rules;
-- may interact differently with weapon classes.
+Destroying them reduces available firepower. A ship with no functioning weapon should be forced to repair, use a special fallback, or eventually lose.
 
 ### 5.4 Armor
 
-- reduces hull damage;
-- may reduce critical/system-damage chance;
-- persists while the hull remains alive.
+Armor is physical protection, not just a global percentage.
 
-### 5.5 Reactor
+Armor plates can protect linked/adjacent modules and absorb part of incoming damage.
 
-Defines the tactical energy economy:
+As armor plates are destroyed, previously protected systems become more vulnerable.
 
-- maximum energy;
-- energy gained per turn;
-- possible charge efficiency;
-- vulnerability to system damage.
-
-### 5.6 Special module
-
-Creates build identity.
-
-Examples:
-
-- EMP Burst;
-- Emergency Repair;
-- Overcharge;
-- Reflective Shield;
-- Targeting Computer;
-- Jammer.
-
-Only a small curated set is needed for MVP.
-
----
-
-## 6. Battle model
-
-The battle is turn-based and server-authoritative.
-
-### 6.1 Turn actions
-
-Baseline action set:
-
-- **Attack** — use equipped weapon.
-- **Defend** — temporary defensive boost / shield reinforcement.
-- **Charge** — gain energy or empower a later action.
-- **Repair** — restore a limited amount of hull at meaningful cost.
-- **Special** — trigger the installed module ability.
-
-Exact values remain balance parameters rather than hard-coded design promises.
-
-### 6.2 Energy
-
-Energy prevents repeated use of the strongest actions.
-
-Each action may have:
-
-- energy cost;
-- cooldown;
-- charge requirement;
-- conditional modifier.
-
-Every turn restores a defined amount of reactor energy.
-
-Energy should create decisions like:
-
-> Fire a safe attack now, or save enough energy for a strong combo next turn?
-
-### 6.3 Shields and hull
-
-Default damage order:
+This creates a tactical pattern:
 
 ```text
-Incoming hit
-   ↓
-Shield mitigation / absorption
-   ↓
-Armor mitigation
-   ↓
-Hull damage
-   ↓
-Possible critical / system effect
+Break armor
+→ expose system
+→ attack critical system
 ```
 
-Some weapons may override parts of this chain.
+### 5.5 Hull / Structure
 
-### 6.4 Critical hits and system damage
+Structural modules represent the frame of the ship.
 
-Critical hits should be exciting but controlled.
+Damage may create structural stress or damage linked systems.
 
-Possible affected systems:
+### 5.6 Sensors
 
-- weapon;
-- shield generator;
-- reactor;
-- later: engines / targeting.
+Sensors influence targeting/accuracy.
 
-A damaged system reduces effectiveness instead of instantly removing the player from the match.
+Destroying sensors should make precise attacks less reliable.
 
-Examples:
+### 5.7 Wings / auxiliary structure
 
-- reactor damage → lower energy regeneration;
-- weapon damage → lower output or higher cost;
-- shield damage → weaker regeneration / maximum shield.
+Wings or equivalent structural nodes may affect stability/accuracy and serve as additional destructible components.
 
-System damage must never create an unrecoverable snowball too early in a match.
+They are useful visually and mechanically but are not required to be a separate upgrade category in every hull.
 
-### 6.5 Targeted shots — candidate, not mandatory MVP
+### 5.8 Future module families
 
-A later layer can allow targeting a specific system with a lower hit chance. This is intentionally outside the first combat implementation until the base duel proves fun.
+Possible later additions:
 
-### 6.6 Turn timer
+- Shield Generator;
+- Reactor variants;
+- EMP module;
+- repair drone bay;
+- jammer;
+- targeting computer;
+- ammunition module;
+- special weapon mounts.
 
-Target: **15 seconds** per turn.
+These are expansion layers. The first combat prototype should stay understandable.
 
-If time expires, the server chooses a safe fallback action (initially basic attack or defend, depending on balance tests).
+---
 
-### 6.7 Anti-stall / sudden death
+## 6. Module state model
 
-If a battle reaches the turn limit, a **Solar Storm** begins.
+Every damageable module has at minimum:
 
-Suggested baseline:
+- type;
+- current HP;
+- maximum HP;
+- functional/powered state;
+- connected module IDs;
+- temporary status effects.
 
-- starts after turn 10;
-- escalating unavoidable damage each subsequent turn;
-- prevents infinite repair/defend loops.
+Suggested visual states:
 
-### 6.8 Victory conditions
+- **OK** — healthy;
+- **Damaged** — reduced HP;
+- **Critical** — very low HP and potentially worse effectiveness;
+- **Destroyed** — module no longer performs its normal function.
 
-Primary:
+### Power network
 
-- enemy hull reaches zero.
+Modules can be connected by a power graph.
 
-Secondary server outcomes:
+If the Core/Power network can no longer reach a module, that module may become **unpowered** even if it still has HP.
 
-- opponent disconnect timeout;
+This makes ship topology part of tactics rather than merely visual decoration.
+
+---
+
+## 7. Turn model
+
+The game remains turn-based.
+
+### Core turn choice
+
+For the first prototype, the main choices are intentionally direct:
+
+1. **Choose a weapon and fire at a specific enemy module**, or
+2. **Use Repair and select one of your own damaged modules**.
+
+This replaces the previous assumption that every turn must be one of five abstract buttons (`Attack / Defend / Charge / Repair / Special`).
+
+Those concepts may return later as modules/abilities if playtests show they deepen the game.
+
+### Turn timer
+
+PvP target: **15 seconds**.
+
+Offline/Web prototype can initially omit or relax the timer during tuning.
+
+### Battle resolution
+
+A turn ends after the selected shot or repair resolves and all immediate effects are applied.
+
+Possible resolution order:
+
+```text
+weapon fires
+→ accuracy / hit test
+→ armor absorption
+→ target module damage
+→ splash if applicable
+→ status effect roll
+→ destruction/cascade effects
+→ power network recalculation
+→ victory check
+→ next turn
+```
+
+---
+
+## 8. Weapons
+
+The initial direction follows four clearly differentiated weapons.
+
+### 8.1 Laser
+
+Identity: reliable precision weapon.
+
+Characteristics:
+
+- moderate damage;
+- high projectile speed / accuracy;
+- low splash;
+- useful for finishing critical modules.
+
+### 8.2 Missile
+
+Identity: heavy explosive strike.
+
+Characteristics:
+
+- high direct damage;
+- splash damage around impact;
+- stronger chance of fire;
+- slower projectile / possible charge or cooldown later.
+
+### 8.3 Scatter / Shot weapon
+
+Identity: multi-projectile pressure.
+
+Characteristics:
+
+- several projectiles;
+- spread;
+- useful against larger exposed areas;
+- less reliable against a tiny specific module.
+
+Working name can change later.
+
+### 8.4 Plasma
+
+Identity: heavy energy/disruption weapon.
+
+Characteristics:
+
+- strong direct damage;
+- small splash;
+- higher electrical-short chance;
+- visually distinctive projectile.
+
+### Later candidates
+
+- Railgun — armor penetration;
+- Ion weapon — system disruption;
+- EMP launcher;
+- incendiary weapon;
+- anti-shield weapon if shields become a major layer.
+
+No weapon should dominate all target types.
+
+---
+
+## 9. Damage and secondary effects
+
+### 9.1 Armor absorption
+
+Incoming damage to a protected module can be partially redirected to linked armor plates.
+
+Armor therefore has its own HP and can be physically broken.
+
+### 9.2 Fire
+
+A module may catch fire.
+
+Effects:
+
+- damage over multiple turns;
+- possible spread to connected modules;
+- visual flame/smoke;
+- can be removed by repair or expire naturally depending on balance.
+
+### 9.3 Electrical short
+
+A module may become temporarily shorted.
+
+Effects:
+
+- module disabled or heavily reduced for several turns;
+- especially relevant to Core, Weapons and Sensors;
+- Plasma/Ion-style weapons are natural sources.
+
+### 9.4 Structural stress
+
+Hull/core destruction may stress linked modules and cause smaller follow-up damage.
+
+### 9.5 Cascade damage
+
+Destroying important systems, especially Core, can damage connected systems.
+
+Cascade damage should be dramatic but bounded so one lucky hit does not routinely decide a full-health match.
+
+### 9.6 Randomness principle
+
+Randomness creates tension but should not dominate strategy.
+
+Prefer:
+
+- predictable base damage;
+- bounded status chances;
+- visible weapon identities;
+- server-seeded/logged RNG in PvP.
+
+---
+
+## 10. Repair
+
+Repair is a targeted tactical action.
+
+Player selects **Repair**, then selects one of their own modules.
+
+Repair may:
+
+- restore module HP;
+- extinguish fire;
+- clear electrical short;
+- remove structural stress.
+
+### Repair kits
+
+The prototype should use a limited number of repair kits per battle.
+
+Candidate rules inspired by the reference prototype:
+
+- normal repair costs 1 kit;
+- emergency restoration of a destroyed module may cost 2 kits;
+- repaired destroyed module returns at partial HP;
+- repair consumes the player's turn.
+
+Exact numbers remain balance parameters.
+
+---
+
+## 11. Ship upgrades between battles
+
+Upgrade decisions should change how systems survive and perform.
+
+Initial upgrade categories:
+
+| Upgrade | Intended effect |
+|---|---|
+| Core | more Core HP / reduced cascade severity |
+| Engines | more engine HP / reduced accuracy penalty |
+| Weapons | more weapon HP / damage bonus |
+| Armor | more armor HP / stronger protection |
+| Sensors | more sensor HP / better targeting |
+| Hull | more structure HP / reduced stress |
+| Fire Protection | lower fire chance / fire damage |
+| Electrical Shielding | lower short-circuit chance/duration |
+
+The first prototype may use simple upgrade points rather than a full economy.
+
+Long-term progression can later map these upgrades into Credits, parts, equipment rarity, unlocks and player inventory.
+
+---
+
+## 12. Victory and defeat
+
+The reference combat concept supports ships continuing to fight while partially crippled.
+
+Preferred prototype rule:
+
+- victory when the opponent's overall ship structural HP/integrity reaches zero or no meaningful combat capability remains;
+- Core destruction causes severe consequences but is not automatically guaranteed instant victory unless playtests show that rule is better.
+
+PvP also supports:
+
 - surrender;
-- administrative match cancellation on invalid state.
+- disconnect timeout;
+- invalid-match cancellation.
+
+A late anti-stall mechanism such as Solar Storm remains available if repairs create overly long matches.
 
 ---
 
-## 7. Multiplayer experience
+## 13. Battle UI
 
-The main social surface is **Online Arena**.
+The battle screen must communicate two things simultaneously:
 
-Players can see:
+1. the ships as physical objects;
+2. the health/state of individual systems.
 
-- online player count;
-- player name;
-- status;
-- league/rating summary;
-- ship power;
-- challenge button when available.
+Required UI:
 
-Statuses:
+- both ships;
+- selectable module hit zones;
+- per-module health/state;
+- overall ship integrity summary;
+- current turn;
+- selected weapon;
+- weapon selector;
+- repair mode + remaining kits;
+- statuses such as Fire / Short / Power Offline;
+- concise battle log;
+- Victory / Defeat overlay;
+- Rematch / Upgrade flow.
 
-- Online / Available;
-- In Battle;
-- Ready;
-- Away (later);
-- Offline is generally omitted from the live list.
+### Orientation
 
-Core flows:
+Orientation is **not hard-locked yet**.
 
-1. Online Arena → Challenge → Accept → Battle Room → Battle → Result → Rematch.
-2. Quick Battle → matchmaking → Battle.
-3. Ranked → rating-based matchmaking → Battle → rating update.
+The supplied gameplay reference works naturally in a wide left-vs-right battlefield. Mobile targeting may also benefit from landscape orientation.
 
-Detailed multiplayer rules are in [MULTIPLAYER.md](MULTIPLAYER.md).
-
----
-
-## 8. Game modes
-
-### MVP
-
-#### Quick Battle
-
-Fast unranked or lightly ranked matchmaking designed for low friction.
-
-#### Ranked
-
-Competitive queue with rating and leagues.
-
-#### Direct Challenge
-
-Challenge a specific available player from Online Arena.
-
-### Post-MVP
-
-- Friends / Friendly Duel;
-- Private Room with invite code;
-- Spectator mode;
-- tournaments;
-- clans;
-- seasonal events;
-- replays.
+Phase 1 Web prototype should therefore validate responsive layouts rather than force the old portrait assumption. Desktop/wide layouts can use left-vs-right ships; narrow/mobile layouts can stack or adapt. Android orientation will be chosen after real usability tests.
 
 ---
 
-## 9. Progression
+## 14. Multiplayer experience
 
-Primary resources:
+The social layer remains unchanged.
 
-- **Credits** — common upgrade/purchase currency earned through play.
-- **XP** — account/player progression.
-- **Upgrade materials** — used to gate specific equipment upgrades.
+Main surface: **Online Arena**.
 
-Progression targets:
+Players can:
 
-- frequent small progress;
-- occasional meaningful unlock;
-- build diversity rather than one mandatory upgrade path.
+- see who is online;
+- challenge a specific available pilot;
+- accept or decline duel invitation;
+- enter an authoritative battle room;
+- rematch;
+- use Quick Match;
+- later use Ranked.
 
-Detailed economy is in [PROGRESSION.md](PROGRESSION.md).
+The server owns:
+
+- module state;
+- target validation;
+- accuracy/RNG;
+- damage;
+- armor absorption;
+- statuses;
+- repair validation;
+- turn state;
+- victory result.
+
+Web and Android clients present the same battle rules.
 
 ---
 
-## 10. Ranking and leagues
+## 15. Progression and ranking
 
-Initial league ladder:
+Long-term progression remains:
+
+- Credits;
+- XP;
+- equipment/upgrades;
+- rating;
+- leagues;
+- cosmetics.
+
+Initial leagues:
 
 - Bronze;
 - Silver;
@@ -400,177 +594,130 @@ Initial league ladder:
 - Diamond;
 - Master.
 
-Ranked matchmaking should primarily use player rating. Ship power may be included as a guardrail during early population growth to reduce extreme stat mismatches.
-
-The exact rating system can start with Elo-like logic and evolve later.
+The first Web combat prototype should **not** build the full economy. Simple upgrade points are enough to test whether upgrading systems creates interesting choices.
 
 ---
 
-## 11. Fairness and monetization
+## 16. Monetization direction
 
-Competitive integrity is a product pillar.
+Competitive integrity remains a product pillar.
 
 Preferred monetization:
 
 - ship skins;
-- weapon VFX;
-- laser colors;
+- projectile/VFX variants;
 - engine trails;
-- avatars / portraits;
+- avatars;
 - banners;
 - emotes;
-- victory animations;
-- seasonal cosmetic pass later.
+- victory effects;
+- seasonal cosmetics later.
 
-Avoid:
-
-- selling direct ranked combat advantage;
-- exclusive paid weapons with superior competitive stats;
-- paid repair/energy buttons inside a duel.
+Avoid selling direct ranked combat superiority.
 
 ---
 
-## 12. UX / screen map
+## 17. MVP implementation order
 
-Primary screens:
+### Phase 1 — Web combat prototype
 
-```text
-Launch
-  ↓
-Login / Account
-  ↓
-Home
-  ├── Hangar / My Ship
-  │     ├── Equip
-  │     └── Upgrade
-  │
-  ├── Online Arena
-  │     ├── Direct Challenge
-  │     ├── Quick Battle
-  │     └── Ranked
-  │
-  ├── Battle
-  │     └── Result / Rematch
-  │
-  ├── Profile / Rating
-  └── Settings
-```
+Must prove:
 
-Post-MVP navigation can include missions, store, friends, news, seasons, and tournaments.
+- two modular ships;
+- selectable enemy modules;
+- Laser / Missile / Scatter / Plasma;
+- module HP and destruction;
+- armor protection;
+- at least basic power/system consequences;
+- Fire and/or Electrical Short;
+- targeted Repair;
+- simple AI opponent;
+- upgrade screen with a small point budget;
+- battle log;
+- Victory / Defeat / Rematch;
+- responsive browser usability.
 
----
+### Phase 2 — Server
 
-## 13. Visual identity
+Move the validated combat model into an ASP.NET Core authoritative battle engine.
 
-Visual direction:
+### Phase 3 — Web PvP
 
-- premium military sci-fi;
-- dark space backgrounds;
-- metallic blue UI as neutral/player language;
-- red as hostile/danger language;
-- gold for progression/rank/reward;
-- purple for special/rare systems;
-- green for repair/positive status.
+Presence → Challenge → Accept → authoritative modular duel → reconnect/rematch.
 
-Battle composition:
+### Phase 4 — Progression / Ranked
 
-- opponent ship upper half;
-- player ship lower half;
-- large central combat space;
-- bottom action bar with five clear choices;
-- player/enemy HP and shields always visible;
-- energy visible near the local-player panel;
-- combat event line visible without covering the action.
+Persistent upgrades, inventory, rating and balance telemetry.
 
-See [VISUAL_DIRECTION.md](VISUAL_DIRECTION.md).
+### Phase 5 — Android Godot client
+
+Implement the validated battle model in Godot using the same server protocol and assets where appropriate.
 
 ---
 
-## 14. Audio direction
+## 18. MVP success criteria
 
-MVP audio should prioritize feedback rather than quantity.
+The combat direction is successful if:
 
-Required categories:
-
-- UI tap / confirm;
-- challenge received / accepted;
-- weapon fire per weapon family;
-- shield hit;
-- hull hit;
-- critical hit;
-- repair;
-- charge;
-- victory;
-- defeat;
-- low-hull warning.
-
-Music:
-
-- ambient hangar theme;
-- restrained battle tension loop;
-- no constant high-intensity track that exhausts mobile sessions.
+1. Players understand that individual modules are targets.
+2. Target choice changes the outcome of battle.
+3. Different weapons create different target priorities.
+4. Destroying a system visibly changes ship performance.
+5. Repair creates a meaningful tradeoff because it consumes a turn/resource.
+6. A badly damaged ship can still create interesting comeback situations.
+7. Battles remain roughly 2–4 minutes after tuning.
+8. The upgrade screen changes subsequent battle strategy.
+9. The battle is readable on both Web and later Android.
+10. Real PvP can move the same deterministic/authoritative rules to the server.
 
 ---
 
-## 15. MVP success criteria
+## 19. Explicitly out of the first prototype
 
-The first version is successful if:
+Do not block Phase 1 on:
 
-1. A new player understands how to start a battle without explanation.
-2. Two online players can reliably see each other and complete a duel.
-3. A typical duel resolves in 2–4 minutes.
-4. The player makes at least one non-trivial tactical decision per battle.
-5. Different starter loadouts feel meaningfully different.
-6. Disconnect/reconnect does not corrupt a match.
-7. The server remains the source of truth for combat.
-8. Players can immediately rematch or return to the arena.
-9. Visual feedback makes hits, shields, energy, and current turn obvious.
-10. Progression gives a reason to return to the hangar after a small number of matches.
-
----
-
-## 16. Explicitly out of MVP
-
-To protect scope, the first playable online release does **not** require:
-
+- accounts;
+- real multiplayer;
+- ranked leagues;
+- final economy;
+- final 3D ships;
 - clans;
+- chat;
 - tournaments;
-- spectator mode;
-- text chat;
-- open-world navigation;
-- story campaign;
-- dozens of hulls;
-- hundreds of items;
-- marketplace/trading;
+- spectators;
+- dozens of weapons;
 - complex crafting;
-- 2v2 / team combat;
-- replay editor;
-- battle pass;
-- live seasonal events.
-
-These are expansion options only after the core duel proves retention.
+- battle pass.
 
 ---
 
-## 17. Key product risk
+## 20. Expansion space
 
-The largest design risk is **stat progression overpowering tactical skill**.
+The design intentionally leaves room for later features without committing to them now.
 
-Mitigation:
+Candidates:
 
-- narrow power bands;
-- build counters;
-- rating + power-aware matchmaking during early phases;
-- server-side telemetry;
-- avoid exponential stat growth;
-- make sidegrades and specializations more valuable than raw +damage.
+- active shields;
+- energy management;
+- Defend action;
+- Charge/overcharge;
+- special modules;
+- alternate ammunition;
+- crew/officers;
+- directional armor;
+- drones;
+- environmental hazards;
+- more complex power routing;
+- ship layouts with different module topology.
 
-The second major risk is waiting time in a low-population PvP game. Mitigation includes quick matchmaking, direct challenges, asynchronous population-growth strategies, bots clearly labeled for early testing if needed, and keeping matches short.
+Any expansion should strengthen the core decision:
+
+> **What do I target now, and what system can I afford to lose?**
 
 ---
 
-## 18. Product principle
+## 21. Product principle
 
-When a new feature conflicts with the core loop, prefer the core loop.
+When a new feature conflicts with the core combat loop, prefer the core combat loop.
 
-**Cosmic Fight is first a game about building a ship and outplaying another pilot in a short duel.** Everything else exists to make that loop deeper, more social, or more rewarding.
+**Cosmic Fight is first a game about building a modular starship, choosing the right weapon, targeting the right enemy system, and adapting as both ships are physically dismantled during a short duel.**
