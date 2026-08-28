@@ -1,0 +1,6 @@
+.ref-header{position:relative}
+.ref-brand{grid-column:2;grid-row:1;text-align:center;justify-self:center}
+.ref-brand button{margin:0 auto}
+.ref-nav{grid-column:1;grid-row:1;justify-self:start}
+.ref-user{grid-column:3;grid-row:1;justify-self:end}
+@media(max-width:760px){.ref-header{display:grid;grid-template-columns:1fr auto 1fr;min-height:88px;padding-top:4px}.ref-brand{grid-column:2;grid-row:1}.ref-nav{grid-column:1;grid-row:1}.ref-user{grid-column:1/4;grid-row:2;justify-self:center;margin:0}.ref-brand button{font-size:1.05rem}.ref-nav button{padding:5px 6px;font-size:.58rem}}
