@@ -2,19 +2,17 @@
 
 ## Purpose
 
-This document is the current implementation order for Cosmic Fight and should be read before starting a new development phase.
+This document defines the current implementation order for Cosmic Fight.
 
-The product design remains defined by the GDD and Decisions log. This document defines **how we will build and validate it**.
+The product design is defined by `GDD.md` and `DECISIONS.md`. The current combat direction is **targeted modular ship destruction**, not the older abstract five-button combat model.
 
 ## Product targets
 
-Cosmic Fight will have three cooperating parts:
+Cosmic Fight has three cooperating parts:
 
-1. **Web client** — first public/testable client, playable from a browser without an app-store account.
-2. **Authoritative server** — shared backend for both Web and Android clients.
-3. **Android client** — Godot 4 .NET / C# production mobile client using the same server/API and gameplay rules.
-
-Target architecture:
+1. **Web client** — first testable client.
+2. **Authoritative server** — shared backend for Web and Android.
+3. **Android client** — Godot 4 .NET / C# production client using the same server and gameplay rules.
 
 ```text
                      Cosmic Fight
@@ -27,190 +25,195 @@ Target architecture:
               |                       |
          Web Client              Android Client
    Babylon.js / TypeScript       Godot 4 .NET / C#
-   browser / mobile-first        Google Play later
               |                       |
  cosmic-fight.bacus.dev          same backend/API
 ```
 
 ## Why Web first
 
-The Web client is the fastest way to validate the game with real players:
-
-- no Google Play developer account is required;
+- no app-store account required;
 - testers can open a URL immediately;
-- UI/combat iterations can be deployed quickly;
-- real PvP can be tested before Android packaging/store work;
-- the server, combat model, matchmaking and persistence built for Web are reused by Android.
+- combat/UI iterations are faster to distribute;
+- real PvP can be validated before Android packaging;
+- server and combat contracts are reused by Android.
 
-The Godot work already completed is **not discarded**. It remains the foundation for the Android client.
+The existing Godot work is retained as the Android-client foundation.
 
-## Repository layout direction
-
-Do not move the existing Godot project unless there is a strong reason. Godogen currently expects the Godot project at repository root.
-
-Planned layout:
+## Repository layout
 
 ```text
 /
-├── project.godot             # Android/Godot client foundation
+├── project.godot
 ├── CosmicFight.csproj
 ├── scenes/
 ├── scripts/
 ├── assets/
-├── web/                      # Web client
-├── server/                   # ASP.NET Core authoritative backend
+├── web/
+├── server/
 ├── docs/
 └── README.md
 ```
 
-Shared protocol/contracts should be documented and versioned. Avoid coupling gameplay rules to one client implementation.
+Do not move the Godot project casually because Godogen currently expects it at repository root.
 
 ## Technology direction
 
-### Web client
-
-Preferred initial stack:
+### Web
 
 - TypeScript;
 - Vite;
-- Babylon.js for battle rendering/animation;
-- mobile-first responsive UI;
-- browser deployment at `cosmic-fight.bacus.dev` when ready.
-
-The first Web version may use procedural/placeholders. Production assets are introduced through the Asset Manifest workflow.
+- Babylon.js where 3D/battle rendering benefits from it;
+- responsive browser UI;
+- placeholders first.
 
 ### Server
 
-Preferred stack:
-
-- ASP.NET Core / .NET;
+- ASP.NET Core;
 - PostgreSQL;
-- SignalR/WebSocket for realtime presence, invitations and battles;
-- REST/HTTP for profile, inventory and non-realtime operations;
-- Docker for deployment;
+- SignalR/WebSocket;
+- REST/HTTP for non-realtime operations;
+- Docker;
 - server-authoritative combat.
 
-The server owns competitive truth: turn validation, damage, energy, cooldowns, battle result, rating and rewards.
-
-### Android client
+### Android
 
 - Godot 4 .NET / C#;
-- portrait/mobile-first;
-- same gameplay protocol and backend as Web;
-- Android export/AAB and Google Play preparation only after Web/PvP validation is strong enough.
-
-Godogen is primarily used for the Godot/Android track: scene generation, game-runtime iteration, asset workflow and visual proof. It is not required for ordinary ASP.NET Core or Web development.
+- same battle protocol/backend as Web;
+- orientation decided after Web/mobile usability tests;
+- Android export/AAB later.
 
 ## Current status
 
 Completed:
 
-- product GDD and supporting documentation;
-- visual direction, Art Bible and Asset Manifest;
+- GDD and supporting docs;
+- visual direction / Art Bible / Asset Manifest;
 - Godogen/Codex workflow;
 - Godot 4.7.2 .NET bootstrap;
-- portrait Godot scene;
-- procedural player/enemy placeholders;
 - build/import/headless/runtime validation;
-- portable NuGet restore configuration.
+- updated modular-combat direction based on the supplied reference prototype.
 
-Not yet implemented:
+Not implemented yet:
 
-- real combat loop;
-- Web client;
+- real Web combat loop;
 - server;
-- accounts/persistence;
-- presence/matchmaking;
 - real PvP;
+- persistent progression;
 - production assets;
 - Android export pipeline.
 
-## Development phases
+## Phase 1 — Web modular combat prototype
 
-### Phase 1 — Web combat prototype
-
-Goal: prove the battle loop and mobile browser UX as cheaply and quickly as possible.
+Goal: prove the defining combat interaction before networking.
 
 Build in `web/`:
 
-- portrait/mobile-first battle screen;
-- player/enemy placeholder ships;
-- HP / Shield / Energy;
-- Attack / Defend / Charge / Repair / Special;
-- deterministic local battle model;
-- simple AI opponent;
-- turn timer;
+- two modular placeholder ships;
+- visible/selectable modules;
+- Core/Power, Engines, Weapons, Armor, Hull, Sensors;
+- optional Wings/structural nodes where useful;
+- Laser;
+- Missile;
+- Scatter weapon;
+- Plasma;
+- target-specific damage;
+- local armor absorption;
+- module states: OK / Damaged / Critical / Destroyed;
+- system consequences from damaged Engines/Weapons/Sensors/Core;
+- basic power-network/offline behavior;
+- at least Fire and Electrical Short as prototype statuses;
+- Repair mode selecting a friendly module;
+- limited repair kits;
+- simple AI that chooses targets and weapons;
 - battle log;
-- Victory / Defeat / Restart;
-- simple combat VFX;
+- Victory / Defeat / Rematch;
+- small pre-battle upgrade screen with simple points;
 - responsive desktop/mobile testing.
 
-Do **not** build accounts, progression or full multiplayer during the first combat iteration.
+Do **not** build accounts, permanent economy or real multiplayer in this phase.
 
-Exit criterion: repeated short battles are readable and mechanically interesting enough to justify network implementation.
+The old `Attack / Defend / Charge / Repair / Special` model is no longer the Phase 1 requirement. `Defend`, `Charge`, shields and special abilities remain expansion candidates after targeted module combat is proven.
 
-### Phase 2 — Authoritative server foundation
+### Phase 1 validation questions
+
+We specifically need to learn:
+
+1. Is choosing a target module interesting every turn?
+2. Is disabling systems more satisfying than simply reducing one HP bar?
+3. Do weapons create genuinely different target priorities?
+4. Does armor create a readable "break protection, then hit system" decision?
+5. Is Repair a meaningful sacrifice of a turn?
+6. Can crippled ships still create comeback moments?
+7. Which layout works better on phones: portrait-adapted or landscape battle presentation?
+8. Are battles close to the intended 2–4 minute duration?
+
+Exit criterion: the combat loop is understandable and fun enough to justify moving it to an authoritative server.
+
+## Phase 2 — Authoritative server foundation
 
 Build in `server/`:
 
 - ASP.NET Core solution;
 - health/version endpoints;
 - PostgreSQL integration;
-- player/session identity suitable for testing;
-- authoritative combat engine based on validated combat rules;
+- testing identity/session model;
+- authoritative modular battle engine based on Phase 1 rules;
+- target validation;
+- module graph/state;
+- weapon resolution;
+- armor absorption;
+- statuses;
+- repair rules;
+- deterministic/loggable RNG;
 - REST contracts;
 - SignalR/WebSocket transport;
 - structured logs;
-- Docker setup;
+- Docker;
 - unit/integration tests.
 
-Move competitive battle resolution to the server. Client becomes a presenter of authoritative state.
+Exit criterion: automated clients can complete deterministic server-side modular battles.
 
-Exit criterion: automated clients can create and complete deterministic server-side battles.
+## Phase 3 — Web PvP alpha
 
-### Phase 3 — Web PvP alpha
-
-Connect `web/` to `server/` and implement:
+Connect Web to Server:
 
 - online presence;
-- Online Arena player list;
+- Online Arena;
 - Challenge;
 - Accept / Decline;
 - authoritative 1v1 battle room;
-- turn synchronization/timer;
+- synchronized turns;
+- turn timer;
 - reconnect;
 - rematch;
-- Quick Match when direct challenge is stable;
-- basic battle history;
-- deployable Docker/production configuration.
+- Quick Match after direct challenge is stable;
+- basic history;
+- production deployment configuration.
 
-Target deployment: browser-accessible Cosmic Fight on the project domain/server.
+Exit criterion: two remote players can repeatedly complete battles without state divergence.
 
-Exit criterion: two remote real players can repeatedly complete battles without state divergence.
+## Phase 4 — Progression / competitive beta
 
-### Phase 4 — Progression and competitive beta
-
-Add only after PvP works reliably:
+Add after reliable PvP:
 
 - accounts/profile;
-- inventory/loadouts;
-- upgrades;
+- persistent upgrade/inventory system;
 - credits/XP;
-- power score;
+- ship layouts/loadouts;
 - rating/leagues;
 - ranked matchmaking;
-- telemetry/balance tools.
+- balance telemetry.
 
-### Phase 5 — Android Godot client
+## Phase 5 — Android Godot client
 
-Return to the existing Godot project and implement the validated game using the same backend/protocol:
+Use the existing Godot foundation and the validated server protocol:
 
-- production battle UI;
-- Web parity for core gameplay;
-- shared server contracts;
+- modular battle rendering;
+- target selection;
+- weapon/repair UI;
 - realtime PvP;
-- reconnect/background-resume handling;
-- asset replacement via Asset Manifest;
+- reconnect/background resume;
+- shared assets where technically appropriate;
 - Android SDK/export templates;
 - signed AAB;
 - device QA;
@@ -220,18 +223,28 @@ Do not duplicate authoritative combat logic in the Android client.
 
 ## Cross-client rule
 
-Web and Android are two clients of the same game, not separate games.
+Web and Android are two clients of the same game.
 
-The following must remain server/shared-contract driven:
+Server/shared-contract driven:
 
-- combat rules;
-- action validation;
-- authoritative outcomes;
-- player/loadout data contracts;
-- matchmaking and battle lifecycle;
+- module definitions/state;
+- target validation;
+- weapon rules;
+- armor interaction;
+- statuses;
+- repair;
+- battle lifecycle;
+- matchmaking;
 - rating/progression settlement.
 
-Client-specific code should focus on rendering, input, animation, UX and network presentation.
+Client-specific:
+
+- rendering;
+- input;
+- animation;
+- UX;
+- audio;
+- presentation of authoritative events.
 
 ## Asset rule
 
@@ -241,16 +254,16 @@ Continue using:
 - `docs/VISUAL_DIRECTION.md`;
 - `docs/ASSET_MANIFEST.md`.
 
-Placeholders are preferred during mechanics development. Final assets should be generated/approved gradually and reused across Web and Android where technically appropriate.
+Placeholders are preferred while mechanics are being validated.
 
 ## Starting a new development chat
 
-A new implementation chat should begin with a request equivalent to:
+Use a request equivalent to:
 
-> Continue `niko009/cosmic-fight`. Read README and all authoritative docs, especially `docs/DEVELOPMENT_STRATEGY.md`, `docs/GDD.md`, `docs/GAMEPLAY.md`, `docs/TECHNICAL_ARCHITECTURE.md`, and `docs/DECISIONS.md`. Inspect the current repository state. Start the next unfinished phase from `DEVELOPMENT_STRATEGY.md`. Do not redesign agreed product decisions. Implement, test, visually verify where applicable, update docs/status, and commit/push the completed phase.
+> Continue `niko009/cosmic-fight`. Read README and all authoritative docs, especially `docs/DEVELOPMENT_STRATEGY.md`, `docs/GDD.md`, `docs/GAMEPLAY.md`, `docs/TECHNICAL_ARCHITECTURE.md`, and `docs/DECISIONS.md`. Inspect the current repository state. Start the next unfinished phase. Preserve the agreed targeted modular combat direction. Implement, test, visually verify, update docs/status, and commit/push the completed work.
 
 ## Immediate next phase
 
-**Next work: Phase 1 — Web combat prototype.**
+**Phase 1 — Web modular combat prototype.**
 
-The existing Godot bootstrap should remain intact while the Web prototype is developed.
+The supplied Space Busters-style HTML reference informs the mechanics and interaction model, but Cosmic Fight should keep its own art direction, product identity and architecture.
