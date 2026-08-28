@@ -2,214 +2,386 @@
 
 ## Goal
 
-Define the first implementable version of the Cosmic Fight duel without prematurely locking final balance numbers.
+Define the first implementable Cosmic Fight duel around the updated core mechanic: **choose a weapon, target a specific ship module, and damage the enemy's functional systems**.
+
+The supplied Web reference prototype is the current mechanical inspiration for this direction. It is a reference for interaction and systems, not a final UI/visual design.
 
 ## Match structure
 
-1. Match created by server.
-2. Both players lock their loadouts.
-3. Server publishes initial combat state.
-4. Turn owner receives a 15-second action window.
-5. Player submits one action.
-6. Server validates cost/cooldown/state.
-7. Server resolves outcome.
-8. Both clients receive the same authoritative result event.
-9. Animation/VFX play from that event.
+1. Both ships spawn with visible modules and current states.
+2. Turn owner chooses a weapon or Repair.
+3. If attacking, player selects a specific enemy module.
+4. If repairing, player selects a specific friendly module.
+5. Server/local prototype validates the action.
+6. Shot/repair resolves.
+7. Armor, splash, statuses, destruction and cascade effects resolve.
+8. Power/system effectiveness is recalculated.
+9. Battle state is checked.
 10. Next turn begins.
-11. Repeat until victory, surrender, disconnect timeout, or sudden death resolution.
+11. Repeat until victory, surrender, disconnect timeout, or later sudden-death rule.
 
 ## Player-visible combat state
 
-Always visible:
+Always readable:
 
 - current turn;
+- both ships and selectable modules;
+- module HP/state;
+- overall ship integrity summary;
+- selected weapon;
+- remaining repair kits;
+- important statuses;
+- battle log / last event.
+
+Later PvP additions:
+
 - turn timer;
-- both hull HP values;
-- both shield values;
-- local energy;
-- local cooldowns;
-- important status effects;
-- concise last-event text.
+- rating/player identity;
+- reconnect state.
 
-Optional/conditional:
+## Core turn actions
 
-- enemy energy should not necessarily be exact; decide after playtests whether hidden information improves prediction.
+The first prototype does **not** use `Attack / Defend / Charge / Repair / Special` as five equal abstract buttons.
 
-## Baseline actions
+The primary interaction is:
 
-### Attack
+### Fire
 
-Uses equipped weapon.
-
-Data fields:
-
-- base damage;
-- energy cost;
-- cooldown;
-- accuracy if used;
-- armor penetration;
-- shield modifier;
-- critical chance/modifier;
-- system-effect chance.
-
-### Defend
-
-Provides short-lived mitigation or shield reinforcement.
-
-Design requirement: Defend must not be optimal every second turn. Use energy cost, diminishing value, cooldown, or predictable counterplay.
-
-### Charge
-
-Restores or banks energy. Can also become a future hook for charged attacks.
-
-Design requirement: Charge creates vulnerability because it sacrifices immediate pressure.
+1. Choose weapon.
+2. Choose enemy module.
+3. Resolve the weapon against that module.
 
 ### Repair
 
-Restores hull under strict constraints.
+1. Choose Repair mode.
+2. Choose one friendly damaged module.
+3. Consume repair resource and the turn.
 
-Possible constraints:
+Defend, Charge and Special remain future expansion candidates, preferably attached to equipment/modules rather than added automatically.
 
-- high energy cost;
-- cooldown;
-- limited uses per battle;
-- reduced efficiency in Solar Storm.
+## Initial weapons
 
-### Special
+### Laser
 
-Delegates to installed module.
+- reliable;
+- moderate damage;
+- accurate;
+- low/no splash;
+- good finisher for damaged systems.
 
-Examples:
+### Missile
 
-- EMP Burst: temporary reactor/weapon disruption;
-- Emergency Shield: immediate shield injection;
-- Overcharge: next weapon attack gets bonus damage for additional energy;
-- Emergency Repair: one strong limited heal.
+- high impact;
+- slower/heavier feel;
+- splash damage;
+- stronger fire chance;
+- future cooldown/charge candidate.
 
-## Damage model — initial formula shape
+### Scatter weapon
 
-The first prototype should use simple, inspectable formulas.
+- several projectiles;
+- spread;
+- less precise;
+- useful against broad/clustered targets.
+
+### Plasma
+
+- strong energy projectile;
+- small splash;
+- increased electrical-short chance;
+- distinct visual identity.
+
+Later candidates: Railgun, Ion, EMP, incendiary and shield-specialist weapons.
+
+## Module set
+
+Initial module families:
+
+- Core / Power;
+- Engine;
+- Weapon;
+- Armor;
+- Hull / Structure;
+- Sensor;
+- Wing / auxiliary structural node when useful for a hull layout.
+
+Each module tracks at minimum:
+
+- ID;
+- type;
+- HP / max HP;
+- connections;
+- powered/functional state;
+- status effects.
+
+## Damage states
+
+Recommended states:
+
+- `OK`;
+- `DAMAGED`;
+- `CRITICAL`;
+- `DESTROYED`.
+
+The state should be obvious both graphically and in compact HUD information.
+
+## Functional consequences
+
+Module damage must change gameplay.
+
+Suggested first rules:
+
+### Core / Power
+
+- powers connected systems;
+- destruction causes major power loss/cascade risk;
+- does not have to be an instant win in the first prototype.
+
+### Engines
+
+- reduce accuracy/attack efficiency as they are damaged;
+- losing all engines creates a major penalty.
+
+### Weapons
+
+- destroyed weapon mounts reduce offensive capability;
+- losing all weapon mounts leaves Repair/special fallback as the only recovery path.
+
+### Armor
+
+- physical armor plates protect linked modules;
+- part of incoming damage is absorbed by armor itself;
+- destroyed armor exposes previously protected modules.
+
+### Sensors
+
+- affect targeting accuracy;
+- damaged sensors make precise subsystem shots less reliable.
+
+### Hull / Structure
+
+- structural damage contributes to overall ship integrity;
+- destruction can stress linked systems.
+
+### Wings
+
+- optional stability/accuracy contribution;
+- destructible structural targets.
+
+## Power network
+
+The ship can be represented as a graph of linked modules.
+
+Power starts from Core and propagates through surviving connections.
+
+A module that still has HP but loses a valid power connection may become offline or operate at greatly reduced efficiency.
+
+This mechanic is important because it allows players to disable a system indirectly by breaking the network around it.
+
+## Armor model
+
+Armor is ablative and local.
+
+Simplified first rule:
+
+```text
+incoming module hit
+→ determine linked live armor coverage
+→ redirect/absorb part of damage into armor plates
+→ remaining damage reaches target
+→ armor may break and expose target for later turns
+```
+
+Do not hide armor entirely inside a global defense number.
+
+## Secondary statuses
+
+### Fire
+
+Possible behavior:
+
+- damage over multiple turns;
+- increased chance on engines/critical modules;
+- possible spread to connected modules;
+- repair can extinguish it.
+
+### Electrical Short
+
+Possible behavior:
+
+- module temporarily disabled/reduced;
+- relevant to Core, Sensors and Weapons;
+- Plasma/Ion-style attacks should have stronger interaction.
+
+### Structural Stress
+
+Possible behavior:
+
+- small delayed damage;
+- triggered by destruction of Hull/Core/linked structure;
+- should stay bounded and readable.
+
+## Cascade damage
+
+Destruction of important modules can damage linked systems.
+
+Core destruction is the clearest candidate.
+
+Design constraints:
+
+- dramatic visual feedback;
+- meaningful tactical reward;
+- avoid a single random hit wiping an otherwise healthy ship;
+- cascade severity can be upgradeable/reducible.
+
+## Repair model
+
+Repair targets one friendly module and consumes the turn.
+
+Initial candidate:
+
+- limited repair kits per battle;
+- standard repair costs 1 kit;
+- repair restores a percentage/fixed amount of module HP;
+- repair extinguishes Fire;
+- repair clears Short/Stress;
+- emergency restart of a destroyed module may cost 2 kits and restore only partial HP.
+
+Exact values should be tuned by playtests.
+
+## Upgrades between battles
+
+The reference direction supports a small pre-battle upgrade screen.
+
+Initial categories:
+
+- Core;
+- Engines;
+- Weapons;
+- Armor;
+- Sensors;
+- Hull;
+- Fire Protection;
+- Electrical Shielding.
+
+Phase 1 can use a simple upgrade-point budget rather than permanent economy.
+
+Upgrade effects should remain understandable, for example:
+
+- +module HP;
+- +weapon damage;
+- reduced accuracy penalty;
+- stronger armor protection;
+- reduced fire/short probability;
+- reduced cascade/stress damage.
+
+## Damage formula philosophy
+
+Keep formulas inspectable.
 
 Conceptually:
 
 ```text
-weapon raw damage
-  × offensive modifiers
-  × target-type modifier
-  → shield absorption
-  → armor reduction for hull portion
-  → final hull damage
-  → critical/system roll
+weapon base damage
+× attacker system modifiers
+× optional charge/risk modifier
+→ hit/accuracy check
+→ local armor absorption
+→ target module damage
+→ splash if applicable
+→ Fire/Short/Stress roll
+→ destruction/cascade
+→ power graph recalculation
 ```
 
-Do not bury MVP combat under dozens of multiplicative stats.
+Do not add dozens of stats before the interaction is fun.
 
-## Randomness
+## Accuracy
 
-Randomness should create tension, not decide the entire battle.
+Accuracy should depend partly on ship condition.
 
-Guideline:
+Possible sources:
 
-- low variance on standard attacks;
-- higher variance reserved for explicit high-risk weapons/actions;
-- critical effects bounded;
-- all RNG resolved server-side with a match seed logged for debugging.
+- engine integrity;
+- sensor integrity;
+- wing/stability state;
+- weapon type;
+- later targeting-computer upgrades.
 
-## System damage
+Precision weapons should reward intact targeting systems.
 
-MVP implementation can use three damageable systems:
+## Victory condition
 
-1. Weapon
-2. Shield Generator
-3. Reactor
+First prototype should test victory based on **overall ship destruction / loss of meaningful structural integrity**, while allowing severely crippled ships to continue fighting.
 
-Suggested effect style:
+Core destruction should cause major consequences but is not automatically locked as instant victory yet.
 
-- Weapon damaged: temporary/remainder-of-match output penalty.
-- Shield Generator damaged: lower max shield or regeneration efficiency.
-- Reactor damaged: lower energy generation.
-
-System damage should be visible both in HUD and on the ship model/VFX where practical.
-
-## Build counters
-
-Desired relationships, not hard rock-paper-scissors:
-
-- Railgun pressures armor-heavy builds.
-- Missile burst pressures shield timing/cooldowns.
-- Plasma punishes greedy charge/repair windows.
-- Laser provides consistent baseline reliability.
-- Disruption modules punish high-energy combo builds.
-
-No build should have a hard auto-win matchup.
+If testing shows players strongly prefer a clear "kill the Core" objective, that can be promoted later.
 
 ## Turn pacing
 
-Target:
+PvP target:
 
-- action selection: 15 seconds maximum;
-- server resolution: perceived near-instant;
-- animation: typically 1–2.5 seconds;
-- next decision becomes available quickly.
+- decision window: ~15 seconds;
+- resolution: near-instant game-state update;
+- animation: typically 0.5–2.5 seconds;
+- next turn begins quickly.
 
-Do not force players to watch 6–8 second repeated weapon cinematics.
+Offline Phase 1 can be untimed while mechanics are being tuned.
 
-## Disconnect behavior
+## Anti-stall
 
-- brief network interruption → reconnect grace period;
-- player rejoins the same battle state;
-- server can replay latest authoritative snapshot/events;
-- if grace period expires → loss by disconnect;
-- client must never locally declare victory before server confirmation.
+Solar Storm remains a candidate rather than a mandatory first-prototype feature.
 
-Initial grace target: 30 seconds, subject to test.
+Use it only if repair/disabled-ship states create excessively long battles.
 
-## Surrender
+Potential behavior:
 
-Allow surrender from the battle UI with confirmation. Server records the result as a loss and closes the match cleanly.
+- warning after a turn threshold;
+- escalating unavoidable damage;
+- reduced repair efficiency.
 
-## Solar Storm
+## PvP server authority
 
-Purpose: stop defensive loops.
+When networking is introduced, server resolves:
 
-Baseline candidate:
+- whether module is a legal target;
+- current turn;
+- weapon availability;
+- accuracy;
+- RNG seed/results;
+- armor absorption;
+- module damage;
+- status effects;
+- cascade damage;
+- repair resource/use;
+- power graph;
+- victory.
 
-- begins after turn 10;
-- unavoidable environmental damage increases every full round;
-- repair effectiveness may be reduced;
-- clear visual warning 1–2 turns before activation.
-
-## Battle result
-
-Show:
-
-- Victory / Defeat;
-- opponent;
-- rating delta where relevant;
-- credits / XP / materials;
-- notable progress/unlock;
-- Rematch;
-- Return to Arena;
-- Upgrade Ship shortcut.
+Clients only send intent and render authoritative results.
 
 ## First balance-test matrix
 
 Test at minimum:
 
-- balanced vs balanced;
-- tank vs burst;
-- shield vs penetration;
-- repair-heavy mirror;
-- energy combo vs disruption;
-- strongest starter item vs weakest starter item;
-- equal-skill rematches with swapped loadouts.
+- shoot Core first vs disable Weapons first;
+- armor-first strategy vs direct critical-system strategy;
+- Laser precision vs Missile splash;
+- Plasma disruption vs raw damage;
+- repair-heavy play vs sustained aggression;
+- upgraded weapons vs upgraded armor;
+- engines/sensors crippled vs healthy targeting systems;
+- rematches with different target priorities.
 
 Track:
 
-- average turns;
-- average duration;
-- first-player/second-player win rate;
-- action pick rates;
-- damage by source;
-- repair/defend frequency;
-- surrender/disconnect rate.
+- average turns/duration;
+- first-player win rate;
+- target-module selection rate;
+- weapon usage rate;
+- damage absorbed by armor;
+- number of destroyed systems per battle;
+- Fire/Short frequency;
+- repair frequency/value;
+- comeback rate after critical damage;
+- how often one strategy becomes obviously dominant.
