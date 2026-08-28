@@ -1,0 +1,15 @@
+.cf-module.cf-module-ui > .cf-module-tooltip {
+  display: block !important;
+}
+
+.cf-module-ui:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cf-module-tooltip,
+  .cf-module-ui {
+    transition: none !important;
+  }
+}
