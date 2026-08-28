@@ -28,10 +28,10 @@ public sealed record ShipLoadout(IReadOnlyList<string> Weapons, IReadOnlyList<Mo
     public static ShipLoadout Default => new(
         ["laser", "missile"],
         [
-            new("armor-top", 50, 16), new("sensor", 50, 29),
-            new("weapon-left", 25, 43), new("core", 50, 48), new("weapon-right", 75, 43),
-            new("armor-left", 15, 58), new("hull", 50, 64), new("armor-right", 85, 58),
-            new("engine-left", 34, 82), new("engine-right", 66, 82)
+            new("engine-left", 20, 39), new("engine-right", 20, 61),
+            new("hull", 35, 50), new("armor-top", 49, 27),
+            new("core", 50, 50), new("armor-left", 42, 73), new("armor-right", 58, 73),
+            new("sensor", 64, 50), new("weapon-left", 69, 34), new("weapon-right", 69, 66)
         ]);
 }
 public sealed record SaveLoadoutRequest(IReadOnlyList<string> Weapons, IReadOnlyList<ModulePlacement> Modules);
