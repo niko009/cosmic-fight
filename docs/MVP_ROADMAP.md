@@ -2,80 +2,83 @@
 
 ## Philosophy
 
-Do not build the whole live-service vision before proving the duel is fun and real remote players can complete matches reliably.
+Do not build the whole live-service vision before proving that **targeting and disabling ship systems is fun**.
 
-The current implementation order is **Web first → shared server → Web PvP → Android**. The existing Godot bootstrap is retained for the later Android track.
+Current implementation order: **Web first → shared authoritative server → Web PvP → Android**.
 
 ## Phase 0 — Pre-production and Godot bootstrap — COMPLETE
 
 Delivered:
 
-- GDD baseline;
+- GDD baseline and modular-combat revision;
 - visual direction;
-- combat rules;
-- data model sketch;
-- prototype scope;
 - Art Bible and Asset Manifest;
+- Web-first strategy;
 - Godogen/Codex workflow;
 - Godot 4.7.2 .NET/C# bootstrap;
-- portrait scene with procedural placeholders;
 - build/import/headless/runtime validation;
 - portable NuGet restore.
 
-Exit criterion met: the project has a documented product direction and a validated Android/Godot foundation.
-
-## Phase 1 — Web combat prototype — NEXT
+## Phase 1 — Web modular combat prototype — NEXT
 
 Build in `web/`:
 
-- mobile-first portrait battle screen;
-- player ship + enemy ship placeholders;
-- HP / Shield / Energy;
-- Attack / Defend / Charge / Repair / Special;
-- deterministic local battle state;
-- basic AI opponent;
-- turn timer;
+- two modular placeholder ships;
+- selectable Core/Power, Engines, Weapons, Armor, Hull and Sensors;
+- optional Wings/structural nodes where useful;
+- Laser / Missile / Scatter / Plasma;
+- target-specific damage;
+- local armor absorption;
+- module states: OK / Damaged / Critical / Destroyed;
+- functional system consequences;
+- basic power/offline graph behavior;
+- Fire and Electrical Short;
+- targeted Repair with limited repair kits;
+- simple AI;
+- small pre-battle upgrade-point screen;
 - battle log;
-- victory/defeat/restart;
-- simple combat VFX;
-- desktop/mobile browser QA.
+- Victory / Defeat / Rematch;
+- responsive browser QA.
 
-Goal: determine whether the turn loop is readable and fun before networking complexity.
+Goal: determine whether **weapon choice + target-system choice** creates enough tactical depth before networking.
 
 Exit criteria:
 
-- repeated 2–4 minute battles;
-- all five actions have meaningful use;
-- no obvious dominant always-correct action;
-- battle state is understandable without debug text;
-- acceptable browser/mobile UX.
+- target choice materially changes battle outcome;
+- weapon identities are understandable;
+- armor creates a readable "break protection, then attack system" decision;
+- repair creates a meaningful turn tradeoff;
+- damaged systems visibly affect performance;
+- battles can be tuned toward 2–4 minutes;
+- mobile orientation/layout direction is understood.
 
 ## Phase 2 — Authoritative server foundation
 
 Build in `server/`:
 
 - ASP.NET Core solution;
-- PostgreSQL persistence foundation;
-- test player/session identity;
+- PostgreSQL;
+- testing player/session identity;
 - shared/versioned battle contracts;
-- authoritative combat engine;
-- REST endpoints;
-- SignalR/WebSocket transport;
+- authoritative modular combat engine;
+- module graph/state;
+- target and weapon validation;
+- armor/status/repair resolution;
+- deterministic/loggable RNG;
+- REST + SignalR/WebSocket;
 - health/version endpoints;
-- Docker configuration;
+- Docker;
 - structured logs;
-- combat/server unit and integration tests.
+- unit/integration tests.
 
-Move competitive outcomes from the local prototype into the server.
-
-Exit criterion: automated clients can repeatedly create and complete deterministic server-side battles without divergence.
+Exit criterion: automated clients repeatedly complete deterministic server-side modular battles without divergence.
 
 ## Phase 3 — Web PvP alpha
 
 Connect `web/` to the server and build:
 
 - online presence;
-- Online Arena list;
+- Online Arena;
 - direct challenge;
 - accept/decline;
 - authoritative battle room;
@@ -83,42 +86,36 @@ Connect `web/` to the server and build:
 - reconnect;
 - rematch;
 - Quick Battle after direct challenge is stable;
-- basic match history;
-- production-like deployment.
+- basic history;
+- production deployment configuration.
 
-Target: deploy browser-accessible Cosmic Fight at `cosmic-fight.bacus.dev` for real remote testing.
+Target: browser-accessible Cosmic Fight at `cosmic-fight.bacus.dev`.
 
-Exit criterion: two real remote players can repeatedly complete matches without state divergence.
+Exit criterion: two real remote players repeatedly complete matches without state divergence.
 
 ## Phase 4 — Progression / competitive beta
 
-Build only after reliable PvP:
+Add after reliable PvP:
 
 - real accounts/profile;
-- inventory/loadouts;
-- credits/XP;
-- upgrades;
+- persistent ship layouts/loadouts;
+- upgrades/inventory;
+- Credits / XP;
 - power score;
 - rating/leagues;
 - Ranked matchmaking;
-- telemetry;
-- balance iteration;
-- starter economy.
-
-Exit criterion: enough systems exist to test retention and competitive balance.
+- telemetry/balance tools.
 
 ## Phase 5 — Android Godot client
 
-Use the already bootstrapped Godot 4 .NET/C# project and connect it to the same backend.
+Use the existing Godot foundation and shared server protocol:
 
-Build/polish:
-
-- production battle UI and VFX;
-- parity with validated Web core gameplay;
-- shared server/API contracts;
+- modular ship presentation;
+- precise module targeting;
+- weapon/repair controls;
 - realtime PvP;
-- reconnect and background/resume;
-- gradual production asset replacement;
+- reconnect/background-resume;
+- shared/final assets;
 - Android SDK/export templates;
 - signing/AAB;
 - device QA;
@@ -126,104 +123,78 @@ Build/polish:
 
 The Android client must not duplicate authoritative combat logic.
 
-Exit criterion: Android players can play against Web/Android players through the same authoritative backend and core game rules.
-
 ## Phase 6 — Soft launch / live expansion
 
-Build/polish:
+After core validation:
 
 - onboarding;
 - performance/crash monitoring;
-- content polish;
-- improved matchmaking;
+- matchmaking tuning;
 - economy tuning;
 - moderation/reporting minimums;
-- store listing assets;
-- limited release if appropriate.
-
-Measure:
-
-- D1/D7 retention;
-- match completion;
-- average queue time;
-- battles/session;
-- battle duration;
-- disconnect rate;
-- loadout diversity;
-- ranked distribution.
-
-Candidate later features:
-
-- friends;
-- private rooms;
-- spectator mode;
+- cosmetics;
+- friends/private rooms;
 - seasonal ranks;
-- cosmetic store;
-- tournaments;
-- clans;
-- additional hulls/weapons/modules;
-- events;
-- replays;
-- iOS / other platforms.
+- more hull layouts/weapons/modules;
+- tournaments/clans/spectators only when justified.
 
 ## MVP feature lock
 
-Required for first meaningful online Web test:
-
 ### Combat
-- 3 hulls in data/design direction
-- 4 weapons in data/design direction
-- shield/armor/reactor model
-- special module system
-- 5 turn actions
-- critical/system damage
-- sudden death
+
+Required for first meaningful online test:
+
+- modular targetable ship systems;
+- 4 initial weapons;
+- local armor protection;
+- system failure consequences;
+- repair;
+- at least two secondary status types;
+- clear victory rule;
+- turn timer in PvP.
+
+`Defend`, `Charge`, active Shields, Energy and Special abilities are **not mandatory for the first MVP**. They remain expansion candidates.
 
 ### Multiplayer
-- test/account identity
-- presence
-- player list
-- challenge
-- accept/decline
-- battle room
-- reconnect
-- rematch
-- quick match
-- ranked rating can arrive after first alpha
+
+- test/account identity;
+- presence;
+- player list;
+- challenge;
+- accept/decline;
+- battle room;
+- reconnect;
+- rematch.
 
 ### Progression
-Progression is **not required for the earliest Web PvP alpha**. Add after combat/network reliability is proven:
 
-- credits
-- XP
-- equipment upgrades
-- power score
-- rating/league
+Not required for earliest PvP alpha. Add after combat/network reliability:
+
+- persistent upgrades;
+- Credits / XP;
+- power score;
+- rating/league.
 
 ### UI
-Early Web alpha:
 
-- Battle
-- Online Arena
-- Result
-- minimum profile/test identity
+Early Web prototype/alpha:
 
-Later beta:
-
-- Home
-- Hangar
-- Profile/settings
-- inventory/upgrade screens
+- Upgrade prototype;
+- Battle;
+- Online Arena;
+- Result;
+- minimum profile/test identity when networking arrives.
 
 ## Explicit post-MVP list
 
-- unrestricted chat
-- clans
-- tournaments
-- spectator
-- marketplace/trading
-- 2v2
-- story campaign
-- battle pass
-- deep crafting
-- dozens of ship classes
+- unrestricted chat;
+- clans;
+- tournaments;
+- spectator;
+- marketplace/trading;
+- 2v2;
+- story campaign;
+- battle pass;
+- deep crafting;
+- dozens of ship classes;
+- complex energy/shield layers unless testing justifies them.
