@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cosmicfight
+      POSTGRES_USER: cosmic
+      POSTGRES_PASSWORD: ${COSMIC_DB_PASSWORD:-cosmic_local_change_me}
+    volumes:
+      - cosmic-fight-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cosmic -d cosmicfight"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - cosmic-internal
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: Host=db;Port=5432;Database=cosmicfight;Username=cosmic;Password=${COSMIC_DB_PASSWORD:-cosmic_local_change_me}
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+      Authentication__Google__RedirectUri: ${GOOGLE_REDIRECT_URI:-https://cosmic-fight.bacus.dev/auth/google/callback}
+      App__PublicOrigin: ${APP_PUBLIC_ORIGIN:-https://cosmic-fight.bacus.dev}
+      App__Version: ${APP_VERSION:-0.1.0}
+    networks:
+      bacus-net:
+        aliases:
+          - bacus-cosmic-fight
+      cosmic-internal:
+
+networks:
+  bacus-net:
+    external: true
+  cosmic-internal:
+
+volumes:
+  cosmic-fight-db:
