@@ -71,6 +71,36 @@ Also planned: Quick Battle and Ranked.
 - premium metallic HUD;
 - vertically composed mobile battle screen.
 
+## 2026-08-28 — Asset production workflow
+
+**Decision:** Cosmic Fight uses a manifest-driven, placeholder-first asset workflow.
+
+Godogen/Codex must not freely invent and mass-generate final assets during implementation.
+
+Required rules:
+
+- `docs/ART_BIBLE.md` defines the shared visual language;
+- `docs/ASSET_MANIFEST.md` defines canonical Asset IDs, paths, formats, technical requirements, and generation prompts;
+- new required assets should be registered in the manifest before production generation;
+- placeholders are allowed and preferred during early gameplay development;
+- gameplay code should use stable paths/resource contracts so approved assets can replace placeholders with minimal code changes;
+- one representative asset should be validated in the running game before mass-producing a category;
+- paid generation must not be triggered automatically simply because Godogen supports external generators;
+- accepted generated assets must record provider/source and prompt/version;
+- approved/final production assets are intended to be version-controlled unless a later explicit storage policy changes this.
+
+Asset states:
+
+`MISSING` → `PLACEHOLDER` → `GENERATED` → `APPROVED` → `FINAL`.
+
+## 2026-08-28 — Godogen role
+
+**Decision:** Godogen/Codex is primarily an implementation and iteration system, not the owner of product direction.
+
+It must read the existing GDD, decisions, visual references, Art Bible and Asset Manifest before full implementation.
+
+The first implementation milestone is a local playable battle against basic AI using placeholders where needed. Full online PvP comes after the core combat loop is visually and mechanically proven.
+
 ## 2026-08-28 — Scope control
 
 **Decision:** friends, spectators, private rooms, tournaments, clans, text chat, and deep live-service systems are post-MVP unless needed for a specific test.
