@@ -72,12 +72,13 @@ function endpoints(event: CombatVisualEvent, ownSide: string, root: HTMLElement)
       ? normalizedPoint(sourceField, root, 50, 50)
       : center(sourceRoot, root);
 
+  const targetX = targetRoot.classList.contains('enemy') ? 100 - event.endX : event.endX;
   let end: Point;
   if (event.hit && event.targetModuleId) {
     const target = targetRoot.querySelector<HTMLElement>(`[data-module="${CSS.escape(event.targetModuleId)}"]`);
-    end = target ? center(target, root) : normalizedPoint(targetField, root, event.endX, event.endY);
+    end = target ? center(target, root) : normalizedPoint(targetField, root, targetX, event.endY);
   } else {
-    end = normalizedPoint(targetField, root, event.endX, event.endY);
+    end = normalizedPoint(targetField, root, targetX, event.endY);
   }
   return { start, end };
 }
