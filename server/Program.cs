@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.RateLimiting;
 using CosmicFight.Server;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -16,7 +15,7 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
 builder.Services.AddSingleton(NpgsqlDataSource.Create(connectionString));
 builder.Services.AddSingleton<GameStore>();
 builder.Services.AddSingleton<CombatEngine>();
-builder.Services.AddSingleton<PresenceTracker>();
+builder.Services.AddSingleton<ArenaService>();
 builder.Services.AddHttpClient(nameof(GoogleOAuthService), client => client.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddSingleton<GoogleOAuthService>();
 builder.Services.AddSignalR(options => options.EnableDetailedErrors = false);
@@ -48,7 +47,7 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddFixedWindowLimiter("api", limiter =>
     {
-        limiter.PermitLimit = 120;
+        limiter.PermitLimit = 180;
         limiter.Window = TimeSpan.FromMinutes(1);
         limiter.QueueLimit = 0;
         limiter.AutoReplenishment = true;
@@ -73,42 +72,28 @@ app.UseForwardedHeaders();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
-
 await app.Services.GetRequiredService<GameStore>().EnsureSchemaAsync();
 
-app.MapGet("/health", () => Results.Ok(new
-{
-    status = "ok",
-    service = "cosmic-fight",
-    at = DateTimeOffset.UtcNow
-}));
-
+app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "cosmic-fight", at = DateTimeOffset.UtcNow }));
 app.MapGet("/version.json", (IConfiguration configuration) => Results.Ok(new VersionResponse(
-    configuration["App:Version"] ?? "0.1.0",
-    configuration["App:Commit"] ?? "unknown",
-    DateTimeOffset.UtcNow)));
+    configuration["App:Version"] ?? "0.1.0", configuration["App:Commit"] ?? "unknown", DateTimeOffset.UtcNow)));
+app.MapGet("/api/auth/config", (GoogleOAuthService google) => Results.Ok(new AuthConfig(google.IsConfigured))).RequireRateLimiting("api");
 
-app.MapGet("/api/auth/config", (GoogleOAuthService google) => Results.Ok(new AuthConfig(google.IsConfigured)))
-    .RequireRateLimiting("api");
-
-app.MapPost("/api/auth/guest", async (HttpContext context, GameStore store, CancellationToken cancellationToken) =>
+app.MapPost("/api/auth/guest", async (HttpContext context, GameStore store, CancellationToken ct) =>
 {
-    if (AuthHelpers.PlayerId(context.User) is Guid existingId && await store.GetPlayerAsync(existingId, cancellationToken) is { } existing)
-        return Results.Ok(existing);
-
-    var player = await store.GetOrCreateGuestAsync(Guid.NewGuid(), cancellationToken);
+    if (AuthHelpers.PlayerId(context.User) is Guid existingId && await store.GetPlayerAsync(existingId, ct) is { } existing) return Results.Ok(existing);
+    var player = await store.GetOrCreateGuestAsync(Guid.NewGuid(), ct);
     await AuthHelpers.SignInAsync(context, player);
     return Results.Ok(player);
 }).RequireRateLimiting("auth");
 
-app.MapGet("/api/auth/me", async (HttpContext context, GameStore store, CancellationToken cancellationToken) =>
+app.MapGet("/api/auth/me", async (HttpContext context, GameStore store, CancellationToken ct) =>
 {
     var playerId = AuthHelpers.PlayerId(context.User);
     if (playerId is null) return Results.Unauthorized();
-    var player = await store.GetPlayerAsync(playerId.Value, cancellationToken);
+    var player = await store.GetPlayerAsync(playerId.Value, ct);
     return player is null ? Results.Unauthorized() : Results.Ok(player);
 }).RequireRateLimiting("api");
-
 app.MapPost("/api/auth/logout", async (HttpContext context) =>
 {
     await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -121,23 +106,15 @@ app.MapGet("/auth/google", (HttpContext context, GoogleOAuthService google) =>
     return Results.Redirect(google.BuildChallengeUrl(context));
 }).RequireRateLimiting("auth");
 
-app.MapGet("/auth/google/callback", async (
-    HttpContext context,
-    string? code,
-    string? state,
-    string? error,
-    GoogleOAuthService google,
-    GameStore store,
-    CancellationToken cancellationToken) =>
+app.MapGet("/auth/google/callback", async (HttpContext context, string? code, string? state, string? error,
+    GoogleOAuthService google, GameStore store, CancellationToken ct) =>
 {
     if (!string.IsNullOrWhiteSpace(error) || string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(state))
         return Results.Redirect("/?auth=cancelled");
-
     try
     {
-        var googleUser = await google.CompleteAsync(context, code, state, cancellationToken);
-        var currentPlayerId = AuthHelpers.PlayerId(context.User);
-        var player = await store.UpsertGoogleAsync(currentPlayerId, googleUser.Subject, googleUser.Email, googleUser.Name, googleUser.Picture, cancellationToken);
+        var googleUser = await google.CompleteAsync(context, code, state, ct);
+        var player = await store.UpsertGoogleAsync(AuthHelpers.PlayerId(context.User), googleUser.Subject, googleUser.Email, googleUser.Name, googleUser.Picture, ct);
         await AuthHelpers.SignInAsync(context, player);
         return Results.Redirect("/?auth=success");
     }
@@ -149,100 +126,69 @@ app.MapGet("/auth/google/callback", async (
 }).RequireRateLimiting("auth");
 
 var api = app.MapGroup("/api").RequireAuthorization().RequireRateLimiting("api");
-
-api.MapGet("/profile", async (HttpContext context, GameStore store, CancellationToken cancellationToken) =>
+api.MapGet("/profile", async (HttpContext context, GameStore store, CancellationToken ct) =>
+    await store.GetPlayerAsync(AuthHelpers.RequirePlayerId(context.User), ct) is { } p ? Results.Ok(p) : Results.NotFound());
+api.MapPost("/profile/upgrades", async (HttpContext context, UpgradeRequest request, GameStore store, CancellationToken ct) =>
 {
-    var player = await store.GetPlayerAsync(AuthHelpers.RequirePlayerId(context.User), cancellationToken);
-    return player is null ? Results.NotFound() : Results.Ok(player);
+    try { return Results.Ok(await store.PurchaseUpgradeAsync(AuthHelpers.RequirePlayerId(context.User), request.Upgrade, ct)); }
+    catch (ArgumentException e) { return Results.BadRequest(new { error = e.Message }); }
+    catch (InvalidOperationException e) { return Results.Conflict(new { error = e.Message }); }
 });
-
-api.MapPost("/profile/upgrades", async (HttpContext context, UpgradeRequest request, GameStore store, CancellationToken cancellationToken) =>
+api.MapGet("/loadout", async (HttpContext context, GameStore store, CancellationToken ct) =>
+    Results.Ok(await store.GetLoadoutAsync(AuthHelpers.RequirePlayerId(context.User), ct)));
+api.MapPut("/loadout", async (HttpContext context, SaveLoadoutRequest request, GameStore store, CancellationToken ct) =>
 {
-    try
-    {
-        var player = await store.PurchaseUpgradeAsync(AuthHelpers.RequirePlayerId(context.User), request.Upgrade, cancellationToken);
-        return Results.Ok(player);
-    }
-    catch (ArgumentException exception)
-    {
-        return Results.BadRequest(new { error = exception.Message });
-    }
-    catch (InvalidOperationException exception)
-    {
-        return Results.Conflict(new { error = exception.Message });
-    }
+    try { return Results.Ok(await store.SaveLoadoutAsync(AuthHelpers.RequirePlayerId(context.User), request, ct)); }
+    catch (InvalidOperationException e) { return Results.BadRequest(new { error = e.Message }); }
 });
-
-api.MapPost("/battles/ai", async (HttpContext context, GameStore store, CombatEngine engine, CancellationToken cancellationToken) =>
+api.MapGet("/arena/players", (HttpContext context, ArenaService arena) => Results.Ok(new
 {
-    var player = await store.GetPlayerAsync(AuthHelpers.RequirePlayerId(context.User), cancellationToken);
+    online = arena.OnlineCount,
+    players = arena.List(AuthHelpers.RequirePlayerId(context.User))
+}));
+api.MapPost("/battles/ai", async (HttpContext context, GameStore store, CombatEngine engine, CancellationToken ct) =>
+{
+    var id = AuthHelpers.RequirePlayerId(context.User);
+    var player = await store.GetPlayerAsync(id, ct);
     if (player is null) return Results.NotFound();
-    var battle = engine.CreateAiBattle(player);
-    return Results.Ok(engine.Snapshot(battle));
+    var loadout = await store.GetLoadoutAsync(id, ct);
+    return Results.Ok(engine.Snapshot(engine.CreateAiBattle(player, loadout)));
 });
-
 api.MapGet("/battles/{battleId:guid}", (HttpContext context, Guid battleId, CombatEngine engine) =>
 {
     var battle = engine.GetBattle(battleId);
-    if (battle is null || battle.PlayerId != AuthHelpers.RequirePlayerId(context.User)) return Results.NotFound();
+    if (battle is null || battle.PlayerId != AuthHelpers.RequirePlayerId(context.User) || battle.OpponentPlayerId is not null)
+        return Results.NotFound();
     return Results.Ok(engine.Snapshot(battle));
 });
-
-api.MapPost("/battles/{battleId:guid}/actions", async (
-    HttpContext context,
-    Guid battleId,
-    BattleActionRequest request,
-    CombatEngine engine,
-    GameStore store,
-    CancellationToken cancellationToken) =>
+api.MapPost("/battles/{battleId:guid}/actions", async (HttpContext context, Guid battleId, BattleActionRequest request, CombatEngine engine, GameStore store, CancellationToken ct) =>
 {
     var battle = engine.GetBattle(battleId);
-    if (battle is null || battle.PlayerId != AuthHelpers.RequirePlayerId(context.User)) return Results.NotFound();
-
-    try
+    if (battle is null || battle.PlayerId != AuthHelpers.RequirePlayerId(context.User) || battle.OpponentPlayerId is not null)
+        return Results.NotFound();
+    try { lock (battle) engine.ApplyAiPlayerAction(battle, request); }
+    catch (ArgumentException e) { return Results.BadRequest(new { error = e.Message }); }
+    catch (InvalidOperationException e) { return Results.Conflict(new { error = e.Message }); }
+    if (battle.Status == "finished")
     {
-        lock (battle)
-        {
-            engine.ApplyPlayerAction(battle, request);
-        }
+        var settle = false;
+        lock (battle) { if (!battle.Settled) { battle.Settled = true; settle = true; } }
+        if (settle) await store.RecordBattleResultAsync(battle.PlayerId, battle.EnemyShip.Name, battle.Winner == "player", battle.Turn, ct);
     }
-    catch (ArgumentException exception)
-    {
-        return Results.BadRequest(new { error = exception.Message });
-    }
-    catch (InvalidOperationException exception)
-    {
-        return Results.Conflict(new { error = exception.Message });
-    }
-
-    if (battle.Status == "finished" && !battle.Settled)
-    {
-        lock (battle)
-        {
-            if (!battle.Settled) battle.Settled = true;
-            else return Results.Ok(engine.Snapshot(battle));
-        }
-        await store.RecordBattleResultAsync(battle.PlayerId, battle.EnemyShip.Name, battle.Winner == "player", battle.Turn, cancellationToken);
-    }
-
     return Results.Ok(engine.Snapshot(battle));
 });
 
-api.MapGet("/arena/status", (PresenceTracker presence) => Results.Ok(new { online = presence.OnlineCount, mode = "ai-vertical-slice" }));
-
 app.MapHub<GameHub>("/hubs/game").RequireAuthorization();
-
 app.UseDefaultFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = context =>
     {
-        if (context.File.Name is "index.html" or "sw.js")
+        if (context.File.Name is "index.html" or "sw.js" or "version.json")
             context.Context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
     }
 });
 app.MapFallbackToFile("index.html");
-
 app.Run();
 
 public static class AuthHelpers
