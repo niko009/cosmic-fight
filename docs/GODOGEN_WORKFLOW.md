@@ -8,10 +8,8 @@ The product documentation in this repository is authoritative. The agent is an i
 
 Read `docs/DEVELOPMENT_STRATEGY.md` first.
 
-The current project order is:
-
 ```text
-Web combat prototype
+Web modular combat prototype
         ↓
 Authoritative ASP.NET Core server
         ↓
@@ -24,7 +22,7 @@ Android Godot client using the same backend
 
 The existing Godot bootstrap is intentionally retained while Web/server development proceeds.
 
-Godogen is **not required** for ordinary Web or ASP.NET Core development. Its main role is Godot-specific implementation, scene/build/runtime iteration, asset workflow and visual proof.
+Godogen is **not required** for ordinary Web or ASP.NET Core work. Its main role is Godot-specific implementation, scene/build/runtime iteration, asset workflow and visual proof.
 
 ## Mandatory read order for Godot work
 
@@ -43,15 +41,37 @@ Before modifying Godot gameplay code or generating assets, read:
 11. `docs/ASSET_MANIFEST.md`
 12. `docs/DECISIONS.md`
 
-If implementation choices conflict with these documents, prefer the latest documented decision unless a later explicit user instruction overrides it.
+Prefer the latest documented decision when older docs/examples conflict.
+
+## Combat direction lock
+
+The current authoritative combat direction is **targeted modular ship destruction**.
+
+Do not revert Android implementation to the older abstract five-button model.
+
+When Android implementation resumes, it should support the validated server-driven mechanics, including as applicable:
+
+- visible/selectable ship modules;
+- Core/Power, Engines, Weapons, Armor, Hull, Sensors and validated structural nodes;
+- weapon selection;
+- precise enemy-module targeting;
+- targeted friendly-module Repair;
+- module HP/state;
+- local armor coverage;
+- Fire / Electrical Short / validated statuses;
+- functional consequences from damaged systems;
+- authoritative power/module graph state;
+- Victory / Defeat / Rematch.
+
+`Defend`, `Charge`, active Shields, Energy and Special abilities are expansion candidates only if later product decisions add them.
 
 ## Do not prematurely continue the Godot combat phase
 
 The Godot project has completed its bootstrap milestone.
 
-Unless explicitly requested, do **not** spend significant effort implementing a separate local Godot combat system while the Web-first validation phases are underway.
+Unless explicitly requested, do not build a separate local Android battle engine while the Web-first validation phases are underway.
 
-When Android implementation resumes, use the already-validated server combat rules and shared protocol. Do not create a second authoritative battle engine in the Android client.
+When Android work resumes, consume the already-validated server rules and shared protocol. Do not create a second authoritative battle engine in the client.
 
 ## Asset and implementation preparation
 
@@ -68,23 +88,23 @@ Before production Godot asset work:
 
 ### Asset prompt responsibility
 
-When a new asset is required, create/refine a generation prompt containing:
+For new assets, prompts should describe:
 
-- purpose in the game;
-- exact visual subject;
-- relationship to the Art Bible;
+- gameplay purpose;
+- visual subject;
+- Art Bible relationship;
 - style/material/color language;
-- camera/view if relevant;
+- camera/view;
 - background/transparency requirements;
 - technical constraints;
-- mobile-readability constraints;
-- negative constraints such as no logo, no text, no franchise resemblance.
+- mobile readability;
+- negative constraints such as no logo/text/franchise resemblance.
 
-Prompts belong in `ASSET_MANIFEST.md` next to their asset records.
+Store prompts in `ASSET_MANIFEST.md` next to their asset records.
 
 ## Paid asset generation rule
 
-Do not invoke paid external generation simply because the pipeline supports it.
+Do not invoke paid generation simply because the pipeline supports it.
 
 Before first paid generation in a work session:
 
@@ -99,87 +119,80 @@ If paid generation is not approved, use placeholders and continue.
 
 Useful placeholders include:
 
-- primitive/procedural ship mesh;
-- colored material by hull class;
-- simple beam/projectile;
-- procedural shield ripple;
+- primitive/procedural modular ship geometry;
+- simple module hit regions;
+- colored materials by module/state;
+- basic beams/projectiles;
+- procedural explosion/fire/short effects;
 - vector icon placeholders;
 - minimal space background;
 - temporary/silent audio.
 
-A placeholder is successful when it proves gameplay/layout without locking code to temporary art.
+A placeholder succeeds when it proves gameplay/layout without locking code to temporary art.
 
 ## Canonical asset path rule
 
-Gameplay and scene code should reference stable logical/canonical paths wherever practical.
+Gameplay/scene code should reference stable logical/canonical paths wherever practical.
 
-Do not scatter hard-coded temporary filenames across gameplay code.
-
-When an approved asset replaces a placeholder, prefer the same path/resource contract or one centralized mapping change.
+When approved art replaces a placeholder, prefer the same resource contract or one centralized mapping change.
 
 ## Art consistency gate
 
-Never mass-produce a full category before validating one representative asset in-game.
+Never mass-produce a category before validating one representative asset in-game.
 
-Example:
-
-1. create/obtain Scout candidate;
-2. import into Godot;
-3. verify scale, orientation, materials, readability and lighting;
-4. compare with `ART_BIBLE.md`;
-5. only then use the validated direction for additional ships.
-
-Apply the same pattern to icons, badges, VFX and portraits.
+For modular combat specifically, validate not only beauty but also **target readability**: the player must be able to understand and select relevant systems at game camera distance.
 
 ## Runtime proof rule
 
 A clean compile is not completion.
 
-For every meaningful Godot gameplay/visual milestone:
+For every meaningful Godot milestone:
 
 1. build;
 2. import assets;
-3. run the game;
+3. run;
 4. inspect visible behavior;
 5. identify defects;
-6. fix them;
+6. fix;
 7. run again.
 
 Use Godogen capture/proof workflow where appropriate.
 
 ## Android implementation target when this track resumes
 
-The Android client should implement the already-validated game and server contracts:
+The Android client should implement the validated game/server contracts rather than the old bootstrap placeholder concept.
+
+Target capabilities:
 
 - Godot 4 .NET / C#;
-- portrait/mobile-first battle scene;
-- HP / Shield / Energy UI;
-- Attack / Defend / Charge / Repair / Special;
-- server-authoritative battle snapshot/events;
+- battle orientation chosen from Web/mobile usability evidence;
+- readable modular ships;
+- touch-friendly module targeting;
+- weapon selector;
+- Repair mode;
+- module/status HUD;
+- authoritative battle snapshots/events;
 - realtime PvP;
 - reconnect/background-resume;
-- Victory / Defeat / Rematch;
-- validated production VFX/assets;
+- production VFX/assets;
 - Android export/AAB/device QA.
-
-Do not duplicate server authority inside the client.
 
 ## Documentation maintenance
 
-Keep documentation synchronized when applicable:
+Keep synchronized when applicable:
 
 - `README.md` — current status;
-- `DEVELOPMENT_STRATEGY.md` — current implementation order only when strategy changes;
+- `DEVELOPMENT_STRATEGY.md` — implementation order;
 - `ASSET_MANIFEST.md` — asset status/source/prompt;
-- `DECISIONS.md` — real product/technical decisions;
-- `MVP_ROADMAP.md` — milestone completion/status;
-- technical docs — when architecture actually changes.
+- `DECISIONS.md` — actual product/technical decisions;
+- `MVP_ROADMAP.md` — milestone status;
+- technical docs — architecture changes.
 
 Do not casually rewrite the GDD because implementation details differ.
 
 ## Asset source tracking
 
-For every accepted externally generated asset, record at minimum:
+For accepted generated assets record at minimum:
 
 ```text
 Asset ID
@@ -195,9 +208,9 @@ For manually supplied assets, record source/ownership notes instead.
 
 ## Repository rule
 
-Approved/final game assets are intended to be version-controlled unless a later explicit storage policy changes that decision.
+Approved/final game assets are intended to be version-controlled unless a later storage policy changes that decision.
 
-The Godot project remains at repository root for Godogen compatibility while `web/` and `server/` are added alongside it.
+The Godot project remains at repository root for Godogen compatibility while `web/` and `server/` live alongside it.
 
 ## Definition of done for a Godot milestone
 
@@ -207,8 +220,9 @@ A Godot milestone is complete only when:
 - Godot imports successfully;
 - runtime has no blocking errors;
 - required gameplay works visibly;
-- mobile layout is checked;
-- relevant placeholders/production assets are registered;
-- shared server contracts are respected where applicable;
+- selected mobile orientation/aspect ratios are checked;
+- module targeting is touch-usable;
+- relevant assets/placeholders are registered;
+- shared server contracts are respected;
 - documentation reflects current state;
 - the running result has been visually verified.
