@@ -1,50 +1,75 @@
 # Implementation Status
 
-## 2026-08-28 — Web + server vertical slice
+## 2026-08-28 — Web + authoritative server
 
-The repository now contains a production-shaped Web-first vertical slice that intentionally advances the previous phase order at the product owner's request.
+Implemented baseline:
 
-Implemented:
-
-- responsive TypeScript/Vite Web client in `web/`;
-- ASP.NET Core 9 server in `server/`;
-- server-authoritative AI duel flow;
-- modular ships with Core, Engines, Weapons, Armor, Hull and Sensors;
-- Laser, Missile, Scatter and Plasma;
-- local armor absorption;
-- Fire and Electrical Short statuses;
-- targeted Repair with limited kits;
-- module damage states and functional consequences;
-- persistent player credits, XP, rating, W/L and upgrades;
+- responsive TypeScript/Vite Web client;
+- ASP.NET Core 9 authoritative server;
 - PostgreSQL persistence;
-- guest identity stored through a secure server cookie;
-- Google OAuth account linking, including migration of an existing guest profile;
-- SignalR realtime/presence foundation for later PvP;
-- health and version endpoints;
-- Docker Compose deployment compatible with the Bacus Agent standard profile;
-- PWA shell/manifest and network-first service worker.
+- guest identity + Google OAuth account linking;
+- credits, XP, rating, wins/losses and persistent upgrades;
+- modular combat with Core, Engines, Weapons, Armor, Hull and Sensors;
+- Laser, Missile, Scatter and Plasma;
+- armor absorption, Fire, Electrical Short, targeted Repair and power consequences;
+- health/version endpoints, Docker/Bacus deployment and PWA.
 
-## Runtime architecture
+## 2026-08-28 — Hangar builder + live PvP alpha
+
+The Web flow is now aligned with the supplied `space_busters.html` reference while keeping Cosmic Fight's own visual direction.
+
+### Hangar
+
+- Hangar is the default gameplay screen.
+- Player can drag all visible ship modules around the ship body with pointer/touch input.
+- Module positions are saved to PostgreSQL as the player's `loadout`.
+- Player selects up to two equipped weapons from Laser / Missile / Scatter / Plasma.
+- Equipped weapons and module placement are snapshotted into the authoritative battle state.
+- Persistent upgrades remain server-backed.
+
+### Online Arena
+
+- SignalR presence tracks distinct online pilots, not browser tabs.
+- Arena lists currently connected opponents and their availability.
+- Direct Challenge creates a 30-second server-side invitation.
+- Target player receives the invitation in real time.
+- Target can Accept or Decline.
+- Accept creates one shared authoritative PvP battle and marks both players `in_battle`.
+- Both devices receive viewer-specific snapshots of the same canonical battle.
+- Reconnecting a player reattaches them to an in-memory active battle while that server process still owns it.
+
+### PvP authority
+
+Clients submit only action intent:
 
 ```text
-cosmic-fight.bacus.dev
-        |
-        v
-ASP.NET Core :8080
-  |-- static Vite build
-  |-- /api/*
-  |-- /auth/google*
-  |-- /hubs/game
-        |
-        v
-PostgreSQL 16
+turn + fire/repair + equipped weapon + target module + client action id
 ```
 
-The browser never submits damage or battle outcomes. It submits action intent (`fire` / `repair`, weapon, target, turn). The server validates and resolves the battle.
+The server owns:
+
+- current turn and actor;
+- equipped-weapon validation;
+- target validation;
+- hit/accuracy RNG;
+- armor absorption;
+- module damage;
+- splash;
+- Fire / Electrical Short;
+- power recalculation;
+- repairs;
+- victory;
+- rewards and rating settlement.
+
+A PvP result is settled for both players once.
+
+### Current limitation
+
+Active PvP battle state is still in process memory. A normal browser/network reconnect is supported, but a server/container restart currently loses the unfinished battle. Persisting/replaying active battle snapshots is the next reliability step before public competitive beta.
 
 ## Google OAuth production configuration
 
-The implementation is complete, but Google still requires credentials for this domain. Set server-side environment values:
+Google cloud identity requires server-side credentials:
 
 ```text
 GOOGLE_CLIENT_ID=...
@@ -52,13 +77,12 @@ GOOGLE_CLIENT_SECRET=...
 GOOGLE_REDIRECT_URI=https://cosmic-fight.bacus.dev/auth/google/callback
 ```
 
-The corresponding Google OAuth Web Client must include this exact authorized redirect URI. Until credentials are configured, guest profiles remain fully playable and persistent in PostgreSQL; the UI reports that Google cloud-save configuration is pending.
+With Google enabled, the same account on multiple devices receives the same player profile/loadout. Multiple devices signed into the **same** Google account count as one pilot; different accounts/guest sessions are separate pilots.
 
 ## Next recommended slice
 
-1. Replace AI-only arena with real two-player challenge/accept flow over SignalR.
-2. Persist active battle snapshots/reconnect state.
-3. Add deterministic battle-engine tests and two-client E2E tests.
-4. Add matchmaking/rematch/history UI.
-5. Tune module/weapon balance from real play sessions.
-6. After Web PvP is stable, connect the Godot Android client to the same contracts.
+1. Persist active PvP battle snapshots/reconnect state across server restarts.
+2. Add rematch and match history UI.
+3. Add quick-match queue and turn deadline.
+4. Add automated two-client E2E coverage.
+5. Replace remaining placeholder/CSS ship art with approved production assets while retaining module hit readability.
