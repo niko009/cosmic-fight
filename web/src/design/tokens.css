@@ -1,0 +1,36 @@
+:root {
+  /* Product palette: change these first when re-skinning the game. */
+  --cf-bg-0: #030711;
+  --cf-bg-1: #071321;
+  --cf-surface-1: rgba(8, 20, 35, .92);
+  --cf-surface-2: rgba(5, 13, 24, .94);
+  --cf-line: rgba(121, 205, 247, .18);
+  --cf-text: #e8f8ff;
+  --cf-muted: #7392a7;
+  --cf-cyan: #65e6ff;
+  --cf-blue: #218fff;
+  --cf-red: #ff5370;
+  --cf-gold: #ffc35c;
+  --cf-green: #55e3a1;
+
+  /* Semantic module colors. These are intentionally stable across screens. */
+  --mod-core: #55ddff;
+  --mod-core-bg: rgba(17, 90, 126, .76);
+  --mod-engine: #ff965c;
+  --mod-engine-bg: rgba(116, 57, 30, .82);
+  --mod-weapon: #c78cff;
+  --mod-weapon-bg: rgba(78, 42, 113, .82);
+  --mod-armor: #8ccfff;
+  --mod-armor-bg: rgba(54, 78, 112, .88);
+  --mod-hull: #78a8d8;
+  --mod-hull-bg: rgba(48, 64, 86, .88);
+  --mod-sensor: #60e5aa;
+  --mod-sensor-bg: rgba(29, 101, 78, .84);
+
+  /* Component geometry. Designers can change these without touching game logic. */
+  --module-radius: 9px;
+  --module-shadow: 0 8px 20px rgba(0, 0, 0, .38);
+  --module-label-bg: rgba(2, 7, 13, .88);
+  --module-link: rgba(104, 212, 255, .24);
+  --module-link-hot: rgba(104, 228, 255, .52);
+}
