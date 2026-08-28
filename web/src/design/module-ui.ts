@@ -23,6 +23,11 @@ function moduleId(element: HTMLElement): string | null {
 }
 
 function buildFace(element: HTMLButtonElement, id: string) {
+  const isBattle = element.hasAttribute('data-module');
+  const signature = `${language()}:${id}:${isBattle ? 'battle' : 'hangar'}`;
+  if (element.dataset.moduleUiSignature === signature) return;
+  element.dataset.moduleUiSignature = signature;
+
   const meta = moduleMeta(id);
   const copy = textFor(meta);
   element.classList.add('cf-module-ui');
@@ -31,7 +36,6 @@ function buildFace(element: HTMLButtonElement, id: string) {
   element.setAttribute('aria-label', `${copy.name}. ${copy.role}. ${copy.description}`);
   element.setAttribute('title', `${copy.name} — ${copy.role}. ${copy.description}`);
 
-  const isBattle = element.hasAttribute('data-module');
   const faceClass = isBattle ? 'cf-hit-face' : 'cf-module-face';
   let face = element.querySelector<HTMLElement>(`:scope > .${faceClass}`);
   if (!face) {
