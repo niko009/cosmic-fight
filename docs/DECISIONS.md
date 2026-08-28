@@ -51,13 +51,68 @@ Also planned: Quick Battle and Ranked.
 
 **Decision:** combat is server-authoritative. Client sends action intent; server calculates outcome.
 
+Web and Android clients are presentations of the same authoritative game, not separate competitive implementations.
+
+## 2026-08-28 — Web-first validation strategy
+
+**Decision:** implementation order is now **Web first → shared authoritative server → Web PvP alpha → Android Godot client**.
+
+Reasoning:
+
+- browser testing does not require a Google Play developer account;
+- testers can join immediately from a URL;
+- Web UI/combat iteration is faster to distribute;
+- real PvP can be validated before Android store/export work;
+- server, combat contracts, matchmaking and persistence are reused by Android.
+
+The already-created Godot project is retained as the Android-client foundation and is **not** discarded.
+
+Immediate next phase: `docs/DEVELOPMENT_STRATEGY.md` Phase 1 — Web combat prototype.
+
+## 2026-08-28 — Shared backend/client architecture
+
+**Decision:** one shared backend serves both Web and Android.
+
+Direction:
+
+- Web: TypeScript + Vite + Babylon.js, mobile-first;
+- Server: ASP.NET Core + PostgreSQL + SignalR/WebSocket + Docker;
+- Android: Godot 4 .NET / C#;
+- Web deployment target when ready: `cosmic-fight.bacus.dev`.
+
+Competitive truth belongs to the server: action validation, battle resolution, turn state, results, rating and rewards.
+
+Do not create separate authoritative combat rules for Web and Android.
+
+## 2026-08-28 — Repository layout
+
+**Decision:** keep the existing Godot project at repository root for Godogen compatibility. Add Web and server tracks alongside it.
+
+```text
+/
+├── project.godot
+├── CosmicFight.csproj
+├── scenes/
+├── scripts/
+├── assets/
+├── web/
+├── server/
+└── docs/
+```
+
+Do not reorganize/move the Godot root casually.
+
 ## 2026-08-28 — Progression fairness
 
 **Decision:** progression may improve/expand builds, but competitive design should avoid pure pay-to-win or massive stat gaps. Matchmaking/rating and power score will guard fairness.
 
 ## 2026-08-28 — Platform/engine direction
 
-**Decision:** mobile-first, Android first; Godot 4 .NET / C# is the current implementation direction.
+**Decision:** Cosmic Fight targets both Web and Android.
+
+- Web is the first validation/client track.
+- Android remains a primary production platform using Godot 4 .NET / C#.
+- Both use the same backend and gameplay contracts.
 
 ## 2026-08-28 — Visual direction
 
@@ -93,14 +148,18 @@ Asset states:
 
 `MISSING` → `PLACEHOLDER` → `GENERATED` → `APPROVED` → `FINAL`.
 
+Where technically appropriate, assets should be reusable across Web and Android.
+
 ## 2026-08-28 — Godogen role
 
-**Decision:** Godogen/Codex is primarily an implementation and iteration system, not the owner of product direction.
+**Decision:** Godogen/Codex is primarily an implementation and iteration system for the Godot/Android track, not the owner of product direction.
 
-It must read the existing GDD, decisions, visual references, Art Bible and Asset Manifest before full implementation.
+Godogen is useful for Godot-specific scene generation, build/run/visual-proof loops and asset workflow. Web and ASP.NET Core development do not depend on Godogen.
 
-The first implementation milestone is a local playable battle against basic AI using placeholders where needed. Full online PvP comes after the core combat loop is visually and mechanically proven.
+Godogen must still read the existing GDD, decisions, visual references, Art Bible and Asset Manifest before Android implementation.
 
 ## 2026-08-28 — Scope control
 
 **Decision:** friends, spectators, private rooms, tournaments, clans, text chat, and deep live-service systems are post-MVP unless needed for a specific test.
+
+Progression/economy is also postponed until the basic Web PvP loop and server reliability are proven.
