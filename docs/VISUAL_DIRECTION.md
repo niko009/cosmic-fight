@@ -1,5 +1,22 @@
 # Visual Direction
 
+## 2026-08-29 — Nebula Foundry
+
+The active Web art direction is **Nebula Foundry**: a premium tactical holographic shipyard built around one large, tangible hero ship rather than a small dashboard diagram.
+
+Design thesis:
+
+- the ship is the largest and brightest object in the Hangar;
+- modules remain recognizable through icon, full name, stable color and geometry;
+- the selected module opens a dedicated inspector instead of competing with every upgrade at once;
+- upgrades and weapons become secondary decks below the ship and horizontal snap carousels on portrait mobile;
+- combat uses a wide cinematic corridor on desktop/landscape and a stacked enemy-over-player composition in portrait;
+- mobile navigation and combat actions stay in the lower thumb zone;
+- original `ship-vanguard.svg` and `logo-mark.svg` assets provide a consistent proprietary silhouette without external artwork dependencies;
+- visual motion is concentrated in scanning, targeting, weapon fire and damage feedback, with a reduced-motion fallback.
+
+Reference principles were studied from Space Arena (ship-centric construction), FTL (targetable system readability), and Galaxy Trucker (physical assembly feedback). Their identities and assets are not copied.
+
 ## Target
 
 Cosmic Fight should feel like a premium competitive sci-fi game, not a generic dashboard with spaceship art behind it.
