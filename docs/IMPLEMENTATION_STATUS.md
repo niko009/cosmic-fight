@@ -1,5 +1,24 @@
 # Implementation Status
 
+## 2026-08-30 — Full-game plan and Phase 0
+
+The project has moved from prototype planning to a phased full-game roadmap.
+
+Documentation added:
+
+- [FULL_GAME_ROADMAP.md](FULL_GAME_ROADMAP.md) — delivery phases, exit gates and version 1.0 content target;
+- [GAMEPLAY_2_0.md](GAMEPLAY_2_0.md) — builder, combat, campaign, multiplayer, progression and interface rules.
+
+Phase 0 starts with active-PvP persistence and atomic two-player settlement. This removes the current container-restart failure mode before Quick Match, Ranked or campaign state are added.
+
+The next Phase 0 slices are:
+
+1. deterministic combat-engine tests and replay-friendly RNG/action records;
+2. structured battle-end reason and match/turn deadlines;
+3. surrender, disconnect forfeit, rematch and match-history UI;
+4. two-client browser E2E coverage;
+5. Web client state/view decomposition.
+
 ## 2026-08-28 — Web + authoritative server
 
 Implemented baseline:
@@ -63,9 +82,9 @@ The server owns:
 
 A PvP result is settled for both players once.
 
-### Current limitation
+### Reliability status
 
-Active PvP battle state is still in process memory. A normal browser/network reconnect is supported, but a server/container restart currently loses the unfinished battle. Persisting/replaying active battle snapshots is the next reliability step before public competitive beta.
+Normal browser/network reconnect is supported. Phase 0 adds PostgreSQL-backed active-battle restoration so an unfinished PvP duel can also survive a server/container restart. Remaining competitive reliability work includes turn deadlines, disconnect forfeits and automated two-client coverage.
 
 ## Google OAuth production configuration
 
@@ -79,10 +98,8 @@ GOOGLE_REDIRECT_URI=https://cosmic-fight.bacus.dev/auth/google/callback
 
 With Google enabled, the same account on multiple devices receives the same player profile/loadout. Multiple devices signed into the **same** Google account count as one pilot; different accounts/guest sessions are separate pilots.
 
-## Next recommended slice
+## Canonical next steps
 
-1. Persist active PvP battle snapshots/reconnect state across server restarts.
-2. Add rematch and match history UI.
-3. Add quick-match queue and turn deadline.
-4. Add automated two-client E2E coverage.
-5. Replace remaining placeholder/CSS ship art with approved production assets while retaining module hit readability.
+See [FULL_GAME_ROADMAP.md](FULL_GAME_ROADMAP.md). Phase order is now:
+
+`reliability → real builder → deeper combat → solo campaign → multiplayer beta → progression → presentation → Android`.

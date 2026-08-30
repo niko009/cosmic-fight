@@ -19,6 +19,7 @@ public sealed class CombatEngine
 
     private readonly ConcurrentDictionary<Guid, BattleState> _battles = new();
     public BattleState? GetBattle(Guid id) => _battles.GetValueOrDefault(id);
+    public BattleState RestoreBattle(BattleState battle) => _battles.GetOrAdd(battle.Id, battle);
 
     public BattleState CreateAiBattle(PlayerProfile player, ShipLoadout loadout)
     {

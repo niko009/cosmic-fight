@@ -11,6 +11,12 @@ public sealed class GameHub(ArenaService arena, GameStore store, CombatEngine en
         if (AuthHelpers.PlayerId(Context.User) is Guid playerId && await store.GetPlayerAsync(playerId) is { } profile)
         {
             arena.Connect(Context.ConnectionId, profile);
+            if (arena.BattleFor(playerId) is null && await store.GetActiveBattleForPlayerAsync(playerId) is { } restored)
+            {
+                var battle = engine.RestoreBattle(restored);
+                if (battle.OpponentPlayerId is Guid opponentId)
+                    arena.AttachBattle(battle.Id, battle.PlayerId, opponentId);
+            }
             await Clients.Caller.SendAsync("arenaState", new { online = arena.OnlineCount, players = arena.List(playerId) });
             if (arena.BattleFor(playerId) is Guid battleId && engine.GetBattle(battleId) is { } battle)
                 await Clients.Caller.SendAsync("matchStarted", engine.ViewerSnapshot(battle, playerId));
@@ -30,6 +36,14 @@ public sealed class GameHub(ArenaService arena, GameStore store, CombatEngine en
     {
         var playerId = AuthHelpers.RequirePlayerId(Context.User!);
         return Task.FromResult<object>(new { online = arena.OnlineCount, players = arena.List(playerId) });
+    }
+
+    public ViewerBattleSnapshot? GetCurrentBattle()
+    {
+        var playerId = AuthHelpers.RequirePlayerId(Context.User!);
+        return arena.BattleFor(playerId) is Guid battleId && engine.GetBattle(battleId) is { } battle
+            ? engine.ViewerSnapshot(battle, playerId)
+            : null;
     }
 
     public async Task Challenge(Guid opponentId)
@@ -61,6 +75,8 @@ public sealed class GameHub(ArenaService arena, GameStore store, CombatEngine en
         var aLoadout = await store.GetLoadoutAsync(a.Id);
         var bLoadout = await store.GetLoadoutAsync(b.Id);
         var battle = engine.CreatePvpBattle(a, aLoadout, b, bLoadout);
+        await store.SaveActiveBattleAsync(
+            battle.Id, a.Id, b.Id, battle.Turn, store.SerializeBattle(battle));
         arena.AttachBattle(battle.Id, a.Id, b.Id);
         await Clients.User(a.Id.ToString()).SendAsync("matchStarted", engine.ViewerSnapshot(battle, a.Id));
         await Clients.User(b.Id.ToString()).SendAsync("matchStarted", engine.ViewerSnapshot(battle, b.Id));
@@ -72,12 +88,17 @@ public sealed class GameHub(ArenaService arena, GameStore store, CombatEngine en
         var playerId = AuthHelpers.RequirePlayerId(Context.User!);
         if (arena.BattleFor(playerId) is not Guid battleId || engine.GetBattle(battleId) is not { } battle)
             throw new HubException("Active battle not found");
-        lock (battle) engine.ApplyPvpAction(battle, playerId, request);
+        string serializedState;
+        lock (battle)
+        {
+            engine.ApplyPvpAction(battle, playerId, request);
+            serializedState = store.SerializeBattle(battle);
+        }
 
         var a = battle.PlayerId;
         var b = battle.OpponentPlayerId ?? throw new HubException("Opponent missing");
-        await Clients.User(a.ToString()).SendAsync("battleUpdated", engine.ViewerSnapshot(battle, a));
-        await Clients.User(b.ToString()).SendAsync("battleUpdated", engine.ViewerSnapshot(battle, b));
+        if (battle.Status == "active")
+            await store.SaveActiveBattleAsync(battle.Id, a, b, battle.Turn, serializedState);
 
         if (battle.Status == "finished")
         {
@@ -85,14 +106,23 @@ public sealed class GameHub(ArenaService arena, GameStore store, CombatEngine en
             lock (battle) { if (!battle.Settled) { battle.Settled = true; settle = true; } }
             if (settle)
             {
-                var aWon = battle.Winner == "player";
-                await store.RecordBattleResultAsync(a, battle.EnemyShip.Name, aWon, battle.Turn);
-                await store.RecordBattleResultAsync(b, battle.PlayerShip.Name, !aWon, battle.Turn);
-                arena.FinishBattle(a, b);
-                await Clients.User(a.ToString()).SendAsync("profileChanged");
-                await Clients.User(b.ToString()).SendAsync("profileChanged");
-                await Clients.All.SendAsync("arenaChanged", new { online = arena.OnlineCount });
+                try
+                {
+                    await store.SettlePvpBattleAsync(battle);
+                    arena.FinishBattle(a, b);
+                    await Clients.User(a.ToString()).SendAsync("profileChanged");
+                    await Clients.User(b.ToString()).SendAsync("profileChanged");
+                    await Clients.All.SendAsync("arenaChanged", new { online = arena.OnlineCount });
+                }
+                catch
+                {
+                    lock (battle) battle.Settled = false;
+                    throw;
+                }
             }
         }
+
+        await Clients.User(a.ToString()).SendAsync("battleUpdated", engine.ViewerSnapshot(battle, a));
+        await Clients.User(b.ToString()).SendAsync("battleUpdated", engine.ViewerSnapshot(battle, b));
     }
 }

@@ -170,7 +170,10 @@ async function action(id:string,friendly:boolean) {
     }
   }catch(e){
     toast=err(e);busy=false;animating=false;
-    if(!pvp&&battle){
+    if(pvp&&hub){
+      const latest=await hub.invoke<Viewer|null>('GetCurrentBattle').catch(()=>null);
+      if(latest)await receiveBattle(latest);
+    }else if(battle){
       const latest=await api<Battle>(`/api/battles/${battle.id}`).catch(()=>null);
       if(latest){battle=latest;if(battle.status==='finished')await refreshProfile();}
     }

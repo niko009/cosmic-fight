@@ -37,6 +37,18 @@ public sealed class GameStore(NpgsqlDataSource dataSource, ILogger<GameStore> lo
             created_at timestamptz NOT NULL DEFAULT now()
         );
         CREATE INDEX IF NOT EXISTS ix_match_summaries_player_created ON match_summaries(player_id, created_at DESC);
+        CREATE TABLE IF NOT EXISTS active_battles (
+            id uuid PRIMARY KEY,
+            player_one_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+            player_two_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+            turn_number integer NOT NULL,
+            state jsonb NOT NULL,
+            created_at timestamptz NOT NULL DEFAULT now(),
+            updated_at timestamptz NOT NULL DEFAULT now(),
+            CHECK (player_one_id <> player_two_id)
+        );
+        CREATE INDEX IF NOT EXISTS ix_active_battles_player_one ON active_battles(player_one_id);
+        CREATE INDEX IF NOT EXISTS ix_active_battles_player_two ON active_battles(player_two_id);
         """;
         await using var command = dataSource.CreateCommand(sql);
         await command.ExecuteNonQueryAsync(cancellationToken);
@@ -197,6 +209,120 @@ public sealed class GameStore(NpgsqlDataSource dataSource, ILogger<GameStore> lo
         await transaction.CommitAsync(ct);
         logger.LogInformation("Settled battle for {PlayerId}: {Result}", playerId, won ? "victory" : "defeat");
         return await GetPlayerAsync(playerId, ct) ?? throw new InvalidOperationException("Player missing after settlement");
+    }
+
+    public string SerializeBattle(BattleState battle) => JsonSerializer.Serialize(battle, JsonOptions);
+
+    public async Task SaveActiveBattleAsync(
+        Guid battleId,
+        Guid playerOneId,
+        Guid playerTwoId,
+        int turn,
+        string serializedState,
+        CancellationToken ct = default)
+    {
+        const string sql = """
+        INSERT INTO active_battles(id,player_one_id,player_two_id,turn_number,state)
+        VALUES (@id,@playerOne,@playerTwo,@turn,@state::jsonb)
+        ON CONFLICT (id) DO UPDATE SET
+            player_one_id=EXCLUDED.player_one_id,
+            player_two_id=EXCLUDED.player_two_id,
+            turn_number=EXCLUDED.turn_number,
+            state=EXCLUDED.state,
+            updated_at=now()
+        WHERE active_battles.turn_number <= EXCLUDED.turn_number;
+        """;
+        await using var command = dataSource.CreateCommand(sql);
+        command.Parameters.AddWithValue("id", battleId);
+        command.Parameters.AddWithValue("playerOne", playerOneId);
+        command.Parameters.AddWithValue("playerTwo", playerTwoId);
+        command.Parameters.AddWithValue("turn", turn);
+        command.Parameters.AddWithValue("state", serializedState);
+        await command.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task<BattleState?> GetActiveBattleForPlayerAsync(Guid playerId, CancellationToken ct = default)
+    {
+        await using var command = dataSource.CreateCommand("SELECT state::text FROM active_battles WHERE player_one_id=@id OR player_two_id=@id ORDER BY updated_at DESC LIMIT 1");
+        command.Parameters.AddWithValue("id", playerId);
+        var raw = await command.ExecuteScalarAsync(ct) as string;
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        try
+        {
+            var battle = JsonSerializer.Deserialize<BattleState>(raw, JsonOptions);
+            if (battle is null || battle.Status != "active" || battle.OpponentPlayerId is null)
+            {
+                logger.LogWarning("Ignored invalid active battle snapshot for {PlayerId}", playerId);
+                return null;
+            }
+            return battle;
+        }
+        catch (JsonException exception)
+        {
+            logger.LogError(exception, "Unable to deserialize active battle for {PlayerId}", playerId);
+            return null;
+        }
+    }
+
+    public async Task<bool> SettlePvpBattleAsync(BattleState battle, CancellationToken ct = default)
+    {
+        if (battle.Status != "finished" || battle.OpponentPlayerId is not Guid opponentId || battle.Winner is null)
+            throw new InvalidOperationException("PvP battle is not ready for settlement");
+
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
+        await using var transaction = await connection.BeginTransactionAsync(ct);
+        await using (var claim = new NpgsqlCommand("DELETE FROM active_battles WHERE id=@id RETURNING id", connection, transaction))
+        {
+            claim.Parameters.AddWithValue("id", battle.Id);
+            if (await claim.ExecuteScalarAsync(ct) is null)
+            {
+                await transaction.RollbackAsync(ct);
+                logger.LogInformation("Skipped duplicate PvP settlement for {BattleId}", battle.Id);
+                return false;
+            }
+        }
+
+        var playerOneWon = battle.Winner == "player";
+        await RecordBattleResultInTransactionAsync(
+            connection, transaction, battle.PlayerId, battle.EnemyShip.Name, playerOneWon, battle.Turn, ct);
+        await RecordBattleResultInTransactionAsync(
+            connection, transaction, opponentId, battle.PlayerShip.Name, !playerOneWon, battle.Turn, ct);
+        await transaction.CommitAsync(ct);
+        logger.LogInformation("Atomically settled PvP battle {BattleId} at turn {Turn}", battle.Id, battle.Turn);
+        return true;
+    }
+
+    private static async Task RecordBattleResultInTransactionAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
+        Guid playerId,
+        string opponent,
+        bool won,
+        int turns,
+        CancellationToken ct)
+    {
+        var credits = won ? 120 : 40;
+        var xp = won ? 80 : 25;
+        var rating = won ? 18 : -12;
+        await using (var update = new NpgsqlCommand("UPDATE players SET credits=credits+@credits,xp=xp+@xp,rating=GREATEST(0,rating+@rating),victories=victories+CASE WHEN @won THEN 1 ELSE 0 END,defeats=defeats+CASE WHEN @won THEN 0 ELSE 1 END,updated_at=now() WHERE id=@id", connection, transaction))
+        {
+            update.Parameters.AddWithValue("id", playerId);
+            update.Parameters.AddWithValue("credits", credits);
+            update.Parameters.AddWithValue("xp", xp);
+            update.Parameters.AddWithValue("rating", rating);
+            update.Parameters.AddWithValue("won", won);
+            if (await update.ExecuteNonQueryAsync(ct) != 1) throw new InvalidOperationException("Player missing during PvP settlement");
+        }
+        await using var insert = new NpgsqlCommand("INSERT INTO match_summaries(id,player_id,opponent_name,result,turns,credits_delta,xp_delta,rating_delta) VALUES (@id,@playerId,@opponent,@result,@turns,@credits,@xp,@rating)", connection, transaction);
+        insert.Parameters.AddWithValue("id", Guid.NewGuid());
+        insert.Parameters.AddWithValue("playerId", playerId);
+        insert.Parameters.AddWithValue("opponent", opponent);
+        insert.Parameters.AddWithValue("result", won ? "victory" : "defeat");
+        insert.Parameters.AddWithValue("turns", turns);
+        insert.Parameters.AddWithValue("credits", credits);
+        insert.Parameters.AddWithValue("xp", xp);
+        insert.Parameters.AddWithValue("rating", rating);
+        await insert.ExecuteNonQueryAsync(ct);
     }
 
     private async Task<PlayerProfile?> FindByExternalIdentityAsync(string provider, string subject, CancellationToken ct)

@@ -14,20 +14,20 @@ The finished game remains a short online 1v1 PvP experience with direct challeng
 
 ## Project status
 
-**Stage:** pre-production complete / Godot bootstrap validated / modular Web combat prototype next.
+**Stage:** playable Web vertical slice / authoritative PvP alpha / full-game Phase 0 in progress.
 
 Current strategy:
 
 ```text
-Web modular combat prototype vs AI
+Playable Web combat + hangar + AI + PvP alpha
         ↓
-ASP.NET Core authoritative server
+Reliable persisted battles and automated coverage
         ↓
-Web PvP alpha
+Builder 2.0 + Combat 2.0
         ↓
-Progression / competitive beta
+Solo campaign + competitive beta
         ↓
-Godot Android client using the same backend
+Godot Android client + launch readiness
 ```
 
 The existing Godot 4.7.2 .NET/C# project is retained as the Android-client foundation.
@@ -37,6 +37,8 @@ The existing Godot 4.7.2 .NET/C# project is retained as the Android-client found
 ### Start here
 
 - [Development Strategy](docs/DEVELOPMENT_STRATEGY.md)
+- [Full Game Roadmap](docs/FULL_GAME_ROADMAP.md)
+- [Gameplay 2.0](docs/GAMEPLAY_2_0.md)
 - [Game Design Document](docs/GDD.md)
 - [Combat & Gameplay](docs/GAMEPLAY.md)
 - [Product Decisions](docs/DECISIONS.md)
@@ -85,27 +87,20 @@ Web and Android are two clients of the same authoritative game. The server owns 
 └── docs/
 ```
 
-## Immediate next phase
+## Immediate phase
 
-**Phase 1 — Web modular combat prototype.**
+**Phase 0 — Reliable foundation.**
 
-Build in `web/`:
+The playable slice already includes the Web hangar, modular AI combat, accounts, progression, presence, direct challenges and authoritative PvP. The next gate is reliability:
 
-- two modular placeholder ships;
-- selectable ship systems;
-- Laser / Missile / Scatter / Plasma;
-- module HP and destruction;
-- local armor protection;
-- basic power/system consequences;
-- Fire and/or Electrical Short;
-- targeted Repair with limited kits;
-- simple AI;
-- small pre-battle upgrade screen;
-- battle log;
-- Victory / Defeat / Rematch;
-- responsive browser usability.
+- persist active PvP battles across server restarts;
+- make two-player settlement atomic and idempotent;
+- add deterministic combat tests and two-client E2E coverage;
+- add reconnect deadlines, surrender, rematch and history;
+- expose explicit battle-end reasons;
+- split the Web client into maintainable game-state modules.
 
-Do not build accounts or real networking until this combat loop is enjoyable enough to justify the server phase.
+The complete phase plan and version 1.0 scope are defined in [FULL_GAME_ROADMAP.md](docs/FULL_GAME_ROADMAP.md).
 
 ## Asset production policy
 
