@@ -120,6 +120,19 @@ public sealed class CombatEngine
     {
         if (battle.Status != "active") return;
         var ship = battle.EnemyShip;
+        if (!HasFunctioningWeaponMount(ship))
+        {
+            var emergencyRepair = FindEmergencyWeaponRepair(ship);
+            if (emergencyRepair is not null)
+            {
+                ResolveAction(battle, "enemy", new(battle.Turn, "repair", null, emergencyRepair.Id, Guid.NewGuid().ToString("N")));
+                return;
+            }
+
+            CheckFinished(battle);
+            return;
+        }
+
         var damaged = ship.Modules.Where(m => m.Hp > 0 && (m.Hp < m.MaxHp * .32 || m.FireTurns > 0 || m.ShortTurns > 0)).ToArray();
         if (ship.RepairKits > 0 && damaged.Length > 0 && battle.Rng.NextDouble() < .25)
         {
@@ -420,8 +433,31 @@ public sealed class CombatEngine
     {
         if (ship.Integrity <= 5) return false;
         var structural = ship.Modules.Any(m => (m.Type == ModuleType.Core || m.Type == ModuleType.Hull) && !m.Destroyed);
-        var weapons = ship.Modules.Any(m => m.Type == ModuleType.Weapon && !m.Destroyed);
-        return structural && (weapons || ship.RepairKits > 0);
+        return structural && (HasFunctioningWeaponMount(ship) || FindEmergencyWeaponRepair(ship) is not null);
+    }
+
+    private static bool HasFunctioningWeaponMount(ShipState ship) =>
+        ship.Modules.Any(m => m.Type == ModuleType.Weapon && !m.Destroyed && m.Powered && m.ShortTurns == 0);
+
+    private static ShipModule? FindEmergencyWeaponRepair(ShipState ship)
+    {
+        if (ship.RepairKits <= 0) return null;
+
+        var recoverableShort = ship.Modules
+            .Where(m => m.Type == ModuleType.Weapon && !m.Destroyed && m.Powered && m.ShortTurns > 0)
+            .OrderBy(m => m.Hp)
+            .FirstOrDefault();
+        if (recoverableShort is not null) return recoverableShort;
+
+        if (ship.RepairKits < 2) return null;
+        var core = ship.Modules.FirstOrDefault(m => m.Type == ModuleType.Core);
+        var liveWeapon = ship.Modules.Any(m => m.Type == ModuleType.Weapon && !m.Destroyed);
+        if (core is not null && core.Destroyed && liveWeapon) return core;
+
+        if (core is not null && !core.Destroyed)
+            return ship.Modules.Where(m => m.Type == ModuleType.Weapon && m.Destroyed).OrderByDescending(m => m.MaxHp).FirstOrDefault();
+
+        return null;
     }
 
     private static void AddLog(BattleState battle, string kind, string text) =>

@@ -168,7 +168,14 @@ async function action(id:string,friendly:boolean) {
       if(fresh){await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));await playCombatEffects(battle.effects||[],own,playedEffects);}
       animating=false;if(battle.status==='finished')await refreshProfile();render();
     }
-  }catch(e){toast=err(e);busy=false;animating=false;render();}
+  }catch(e){
+    toast=err(e);busy=false;animating=false;
+    if(!pvp&&battle){
+      const latest=await api<Battle>(`/api/battles/${battle.id}`).catch(()=>null);
+      if(latest){battle=latest;if(battle.status==='finished')await refreshProfile();}
+    }
+    render();
+  }
 }
 const myShip=()=>!battle?null:own==='player'?battle.playerShip:battle.enemyShip;
 const enemyShip=()=>!battle?null:own==='player'?battle.enemyShip:battle.playerShip;
